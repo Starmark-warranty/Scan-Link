@@ -8,8 +8,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="สแกนลิงก์">
 <meta name="theme-color" content="#0e141c">
-<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAACFElEQVR42u3dsY3CMBSAYUCpoQldWIYFmJUFWIYSGjZgAYJA+Nn45fvKK3KS9Z/tSxxYb8dpBa9sDAHiQByIA3EgDsSBOBAH4kAcIA7EgTgQB+JAHIgDcSAOxAHiQByIA3EgDsSBOBAH4kAcIA5mDYbgd4/btc4v2u0PyePIOpSWFcQB4qD9nqPaPmNRO9/oTZWZA3EgDsRBog1pbnEbw7Yb+SH34GJZQRyIA3EgDsSBOBAHiANxIA7EgThorLNH9qUeYc89B46+vpkDywriQBwgDsSBOAiU5NWEb+9bzP281P2Pb69v5sCygjgQB+IAcfB3/8p6VbrHcRsM7i/XyXE/w7KCOBAH4kAciANxkISPmvxIqfMfznNgWUEciAPEwcfW23EqeLnxfDSmbd1PFzMHlhXEgThY8IY0WvRrjM66mjkQB+JAHNS20PdWoj9vw3kOLCuIA8SBOBAH4qCB5Pc53M8wc9DtzPH+z9dT8r8dNzMH4kAciANxkP6/leYb+/rXd54DywriAHEgDsSBOGigs/scHuGaORAH4kAciANxgDgQB+JAHIgDcSAOxEEWvjq0gOgXI5YbR9zIOvxhWUEciANxYEP6amOYdW9ffyTNHFhWEAf2HLYCGXT21aFYVhAH4kAciANxgDgQB+JAHIgDcSAOxIE4EAfiAHEgDsSBOBAH4kAciANxIA4QB+JAHIiDqp76h2AF8XZYHQAAAABJRU5ErkJggg==">
-<link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAACFElEQVR42u3dsY3CMBSAYUCpoQldWIYFmJUFWIYSGjZgAYJA+Nn45fvKK3KS9Z/tSxxYb8dpBa9sDAHiQByIA3EgDsSBOBAH4kAcIA7EgTgQB+JAHIgDcSAOxAHiQByIA3EgDsSBOBAH4kAcIA5mDYbgd4/btc4v2u0PyePIOpSWFcQB4qD9nqPaPmNRO9/oTZWZA3EgDsRBog1pbnEbw7Yb+SH34GJZQRyIA3EgDsSBOBAHiANxIA7EgThorLNH9qUeYc89B46+vpkDywriQBwgDsSBOAiU5NWEb+9bzP281P2Pb69v5sCygjgQB+IAcfB3/8p6VbrHcRsM7i/XyXE/w7KCOBAH4kAciANxkISPmvxIqfMfznNgWUEciAPEwcfW23EqeLnxfDSmbd1PFzMHlhXEgThY8IY0WvRrjM66mjkQB+JAHNS20PdWoj9vw3kOLCuIA8SBOBAH4qCB5Pc53M8wc9DtzPH+z9dT8r8dNzMH4kAciANxkP6/leYb+/rXd54DywriAHEgDsSBOGigs/scHuGaORAH4kAciANxgDgQB+JAHIgDcSAOxEEWvjq0gOgXI5YbR9zIOvxhWUEciANxYEP6amOYdW9ffyTNHFhWEAf2HLYCGXT21aFYVhAH4kAciANxgDgQB+JAHIgDcSAOxIE4EAfiAHEgDsSBOBAH4kAciANxIA4QB+JAHIiDqp76h2AF8XZYHQAAAABJRU5ErkJggg==">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
 <title>สแกนเข้าลิงก์</title>
 <style>
   :root{
@@ -61,6 +62,8 @@
     -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
   .btn:active{transform:scale(.97)}
   .btn.primary{background:var(--ok);color:#06210f}
+  footer .btn{padding:0 15px;font-size:15px}
+  footer #torchBtn{width:50px;padding:0;justify-content:center}
   .btn.on{background:#fde68a;color:#3b2a00}
   .btn svg{width:22px;height:22px}
   [hidden]{display:none!important}
@@ -84,6 +87,25 @@
     animation:sp .8s linear infinite}
   @keyframes sp{to{transform:rotate(360deg)}}
   .cover .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:6px}
+  .btn.big{height:60px;padding:0 34px;font-size:19px;border-radius:16px;margin-top:4px}
+  .btn.big svg{width:26px;height:26px}
+  .link{background:none;color:var(--muted);font-size:15px;text-decoration:underline;padding:8px}
+  .yes-t{color:var(--ok)}
+  .mock{width:min(78vw,290px);background:#f2f2f7;color:#111;border-radius:14px;overflow:hidden;
+    box-shadow:0 8px 24px rgba(0,0,0,.4);margin:4px 0 8px}
+  .mock-t{padding:14px 12px;font-size:14px;font-weight:600;border-bottom:1px solid #d1d1d6}
+  .mock-b{display:flex}
+  .mock-b span{flex:1;padding:11px 0;font-size:15px;color:#007aff}
+  .mock-b span+span{border-left:1px solid #d1d1d6}
+  .mock-b .yes{font-weight:700;background:rgba(34,197,94,.18);color:#0a7a33;position:relative;
+    animation:pulse 1.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{box-shadow:inset 0 0 0 0 rgba(34,197,94,.0)}50%{box-shadow:inset 0 0 0 3px rgba(34,197,94,.9)}}
+  #errMsg ol{text-align:left;margin:4px 0 0;padding-left:22px;color:var(--fg)}
+  #errMsg li{margin:6px 0}
+  .steps{text-align:left;margin:0;padding-left:24px;font-size:17px;line-height:1.5;max-width:340px}
+  .steps li{margin:10px 0}
+  .steps svg{width:20px;height:20px;vertical-align:-4px}
+  .kbd{display:inline-block;padding:0 7px;border-radius:6px;background:rgba(255,255,255,.14);color:var(--fg);font-weight:700}
 </style>
 </head>
 <body>
@@ -109,7 +131,10 @@
 
 <footer>
   <button class="btn" id="torchBtn" hidden aria-label="ไฟฉาย">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6l-1 6h4l-8 14 1-9H7z"/></svg>ไฟฉาย
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6l-1 6h4l-8 14 1-9H7z"/></svg>
+  </button>
+  <button class="btn" id="installBtn" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>ติดตั้งแอป
   </button>
   <button class="btn" id="photoBtn">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h3l2-3h6l2 3h3v13H4z"/><circle cx="12" cy="13" r="4"/></svg>ถ่ายรูปแทน
@@ -133,9 +158,24 @@
 </div>
 
 <div class="cover" id="tap" hidden>
-  <h2>แตะเพื่อเปิดกล้อง</h2>
-  <p>แล้วเล็งโค้ดบนสติ๊กเกอร์ ระบบจะเปิดลิงก์ให้เอง</p>
-  <div class="row"><button class="btn primary" id="tapBtn">เปิดกล้อง</button></div>
+  <h2>แตะปุ่มเพื่อเปิดกล้อง</h2>
+  <p>จะมีหน้าต่างเด้งขึ้นมาถาม ให้กด <b class="yes-t">อนุญาต</b></p>
+  <div class="mock" aria-hidden="true">
+    <div class="mock-t">“สแกนลิงก์” ต้องการใช้กล้อง</div>
+    <div class="mock-b"><span>ไม่อนุญาต</span><span class="yes">อนุญาต</span></div>
+  </div>
+  <button class="btn primary big" id="tapBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h3l2-3h6l2 3h3v13H4z"/><circle cx="12" cy="13" r="4"/></svg>เปิดกล้อง
+  </button>
+  <button class="link" id="tapPhotoBtn">หรือ ถ่ายรูปแทน</button>
+  <button class="link" id="tapInstallBtn" hidden>⬇ ติดตั้งเป็นแอปบนมือถือ</button>
+</div>
+
+<div class="cover" id="guide" hidden>
+  <h2>ติดตั้งเป็นแอป</h2>
+  <ol class="steps" id="guideSteps"></ol>
+  <p>จะได้ไอคอน <b>“สแกนลิงก์”</b> บนหน้าจอ แตะเปิดได้เหมือนแอป</p>
+  <button class="btn primary" id="guideClose">เข้าใจแล้ว</button>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.5/dist/iife/reader/index.js"></script>
@@ -161,11 +201,45 @@
   var IS_ANDROID = /Android/i.test(UA);
   var ON_WEB = location.protocol === "https:" ||
     (location.protocol === "http:" && /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname));
-  var PERM_HELP = IS_IOS
-    ? "iPhone: ไปที่ <b>ตั้งค่า › Safari › กล้อง</b> เลือก <b>อนุญาต</b> (หรือ <b>ถาม</b>)"
-    : IS_ANDROID
-    ? "Android (Chrome): แตะไอคอน <b>ⓘ / แม่กุญแจ</b> หน้าช่องลิงก์ › <b>สิทธิ์</b> › <b>กล้อง</b> › <b>อนุญาต</b>"
-    : "กดไอคอนหน้าช่องลิงก์ แล้วตั้ง <b>กล้อง</b> เป็น <b>อนุญาต</b>";
+  var IS_STANDALONE = navigator.standalone === true ||
+    (window.matchMedia && matchMedia("(display-mode: standalone)").matches);
+  var AUTO_KEY = "scanlink_autostart";
+  var wantCam = false;                     // เคยเปิดกล้องสำเร็จแล้วในรอบนี้
+  var askT = 0;
+
+  // สถานะสิทธิ์กล้อง: granted / denied / prompt / unknown
+  async function camPerm(){
+    try {
+      if (navigator.permissions && navigator.permissions.query) {
+        var s = await navigator.permissions.query({name:"camera"});
+        return s.state;
+      }
+    } catch (e) {}
+    return "unknown";
+  }
+
+  // โหลดหน้าใหม่แล้วเปิดกล้องให้เลย (iPhone จะถามอนุญาตใหม่หลังโหลด)
+  function reloadAndStart(){
+    try { sessionStorage.setItem(AUTO_KEY, "1"); } catch (e) {}
+    location.reload();
+  }
+
+  function blockedHelp(){
+    var steps;
+    if (IS_IOS && !IS_STANDALONE)
+      steps = "<li>แตะ <span class='kbd'>ᴀA</span> ที่ช่องลิงก์ด้านบน/ล่าง</li>" +
+              "<li>เลือก <b>การตั้งค่าเว็บไซต์</b> › <b>กล้อง</b> › <b>อนุญาต</b></li>";
+    else if (IS_IOS)
+      steps = "<li>เปิดแอป <b>ตั้งค่า</b> › <b>Safari</b> › <b>กล้อง</b></li><li>เลือก <b>อนุญาต</b> แล้วกลับมาที่นี่</li>";
+    else if (IS_ANDROID)
+      steps = "<li>แตะไอคอน <span class='kbd'>⚙︎ / ⓘ</span> ทางซ้ายของช่องลิงก์</li>" +
+              "<li>เปิดสวิตช์ <b>กล้อง</b> (หรือ สิทธิ์ › กล้อง › อนุญาต)</li>";
+    else
+      steps = "<li>กดไอคอนทางซ้ายของช่องลิงก์</li><li>ตั้ง <b>กล้อง</b> เป็น <b>อนุญาต</b></li>";
+    return "เครื่องนี้เคยกด <b>ไม่อนุญาต</b> ไว้ หน้าเว็บจึงถามซ้ำเองไม่ได้ ต้องเปิดกลับ 1 ครั้ง:" +
+      "<ol>" + steps + "<li>กดปุ่ม <b>โหลดใหม่</b> ด้านล่าง</li></ol>" +
+      "<br>ไม่สะดวก? กด <b>ถ่ายรูปแทน</b> ได้เลย ไม่ต้องอนุญาตอะไร";
+  }
 
   function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
   function setStatus(t, cls){ var s = $("status"); s.textContent = t; s.className = cls || ""; }
@@ -188,22 +262,39 @@
     return null;
   }
 
-  function showError(title, msg, canRetry){
+  // retry: null = ไม่มีปุ่ม · {label, fn}
+  var retryFn = null;
+  function showError(title, msg, retry){
+    hide("tap");
     $("errTitle").textContent = title; $("errMsg").innerHTML = msg;
-    $("retryBtn").hidden = !canRetry;
-    show("err"); setStatus("ใช้ไม่ได้", "bad");
+    retryFn = retry ? retry.fn : null;
+    $("retryBtn").hidden = !retry;
+    if (retry) $("retryBtn").textContent = retry.label;
+    show("err"); setStatus("ยังสแกนไม่ได้", "bad");
   }
+  var RETRY = {label:"ลองอีกครั้ง", fn:function(){ startCamera(); }};
 
-  function camError(e){
+  async function camError(e){
     var n = e && e.name;
-    if (n === "NotAllowedError" || n === "SecurityError")
-      showError("ยังไม่ได้อนุญาตให้ใช้กล้อง", PERM_HELP + "<br>แล้วกด <b>ลองอีกครั้ง</b>", true);
+    if (n === "NotAllowedError" || n === "SecurityError") {
+      var st = await camPerm();
+      // ตอบกลับเร็วเกินกว่าคนจะกดทัน = เบราว์เซอร์บล็อกไว้ ไม่ได้ขึ้นถาม
+      var fast = performance.now() - askT < 700;
+      if (st === "denied" || fast)
+        showError("กล้องถูกปิดไว้", blockedHelp(), {label:"โหลดใหม่", fn:reloadAndStart});
+      else
+        // แค่ปิดหน้าต่างถาม / กดไม่อนุญาตครั้งนี้ → ถามใหม่ได้
+        showError("ยังไม่ได้กด “อนุญาต”",
+          "กดปุ่มด้านล่าง แล้วเลือก <b class='yes-t'>อนุญาต</b> ในหน้าต่างที่เด้งขึ้นมา" +
+          "<br><br>ไม่สะดวก? กด <b>ถ่ายรูปแทน</b> ได้เลย ไม่ต้องอนุญาตอะไร",
+          {label:"เปิดกล้องอีกครั้ง", fn: IS_IOS ? reloadAndStart : function(){ startCamera(); }});
+    }
     else if (n === "NotReadableError" || n === "AbortError")
-      showError("กล้องถูกใช้งานอยู่", "ปิดแอปอื่นที่ใช้กล้องอยู่ แล้วกดลองอีกครั้ง", true);
+      showError("กล้องถูกใช้งานอยู่", "ปิดแอปอื่นที่ใช้กล้องอยู่ แล้วกดลองอีกครั้ง", RETRY);
     else if (n === "NotFoundError" || n === "OverconstrainedError")
-      showError("ไม่พบกล้อง", "เครื่องนี้ไม่มีกล้องที่ใช้ได้ ลองกด “ถ่ายรูปแทน”", false);
+      showError("ไม่พบกล้อง", "เครื่องนี้ไม่มีกล้องที่ใช้ได้ ลองกด “ถ่ายรูปแทน”", null);
     else
-      showError("เปิดกล้องไม่ได้", "ลองกดลองอีกครั้ง หรือใช้ “ถ่ายรูปแทน”", true);
+      showError("เปิดกล้องไม่ได้", "ลองกดลองอีกครั้ง หรือใช้ “ถ่ายรูปแทน”", RETRY);
   }
 
   async function startCamera(){
@@ -212,11 +303,11 @@
     if (!ON_WEB || !window.isSecureContext) {
       showError("ต้องเปิดจากลิงก์ https://",
         "ตอนนี้เปิดเป็นไฟล์ในเครื่อง มือถือจะไม่ยอมให้ใช้กล้อง (และไม่ขึ้นถามด้วย)<br>" +
-        "ให้เปิดจากลิงก์เว็บที่ขึ้นต้นด้วย <b>https://</b> แทน<br>ระหว่างนี้ใช้ <b>ถ่ายรูปแทน</b> ได้", false);
+        "ให้เปิดจากลิงก์เว็บที่ขึ้นต้นด้วย <b>https://</b> แทน<br>ระหว่างนี้ใช้ <b>ถ่ายรูปแทน</b> ได้", null);
       return;
     }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      showError("เบราว์เซอร์นี้เปิดกล้องไม่ได้", "ให้เปิดหน้านี้ด้วย Safari หรือใช้ “ถ่ายรูปแทน”", false);
+      showError("เบราว์เซอร์นี้เปิดกล้องไม่ได้", "ให้เปิดหน้านี้ด้วย Safari / Chrome หรือใช้ “ถ่ายรูปแทน”", null);
       return;
     }
     starting = true;
@@ -224,16 +315,17 @@
     loadLib().catch(function(){});           // โหลดตัวอ่านไปพร้อมกัน
     var my = ++token;
     try {
+      askT = performance.now();
       var s = await navigator.mediaDevices.getUserMedia({audio:false,
         video:{facingMode:{ideal:"environment"}, width:{ideal:1920}, height:{ideal:1080}}});
       if (my !== token || going) { s.getTracks().forEach(function(t){ t.stop(); }); return; }
-      stream = s; track = s.getVideoTracks()[0];
+      stream = s; track = s.getVideoTracks()[0]; wantCam = true;
       video.srcObject = s;
       try { await video.play(); }
       catch (e) { stopCamera(); show("tap"); setStatus("แตะเพื่อเริ่ม", "warn"); return; }
       setupTorch();
       try { await loadLib(); }
-      catch (e) { stopCamera(); showError("โหลดตัวอ่านโค้ดไม่ได้", "ตรวจสอบอินเทอร์เน็ต แล้วกดลองอีกครั้ง", true); return; }
+      catch (e) { stopCamera(); showError("โหลดตัวอ่านโค้ดไม่ได้", "ตรวจสอบอินเทอร์เน็ต แล้วกดลองอีกครั้ง", RETRY); return; }
       if (my !== token) return;
       scanning = true; document.body.classList.add("scanning");
       setStatus("พร้อมสแกน", "ok");
@@ -342,16 +434,19 @@
       ta.select(); try { document.execCommand("copy"); done(); } catch (e) {} ta.remove();
     }
   };
-  $("closeSheet").onclick = function(){ hide("sheet"); shownText = ""; };
+  $("closeSheet").onclick = function(){
+    hide("sheet"); shownText = "";
+    if (!stream && !starting && !going) boot();      // ยังไม่มีกล้องสด → กลับไปหน้าเริ่ม
+  };
 
   // ถ่ายรูปแทน (ใช้ได้แม้ไม่ได้อนุญาตกล้องสด)
   function pickPhoto(){ $("photoInput").value = ""; $("photoInput").click(); }
   $("photoBtn").onclick = pickPhoto; $("errPhotoBtn").onclick = pickPhoto;
   $("photoInput").onchange = async function(){
     var f = this.files && this.files[0]; if (!f) return;
-    var wasScanning = scanning, errShown = !$("err").hidden;
+    var wasScanning = scanning, errShown = !$("err").hidden, tapShown = !$("tap").hidden;
     scanning = false; token++;
-    hide("err");
+    hide("err"); hide("tap");
     setStatus("กำลังอ่านรูป…", "warn");
     var found = false;
     try {
@@ -363,8 +458,8 @@
       alert("อ่านรูปไม่ได้ ลองใหม่อีกครั้ง");
     }
     if (going) return;
-    if (errShown) {                       // กล้องสดใช้ไม่ได้อยู่แล้ว
-      if (found) setStatus("อ่านจากรูป", "ok"); else show("err");
+    if (errShown || tapShown) {           // ยังไม่ได้เปิดกล้องสด → ไม่เปิดเอง
+      if (found) setStatus("อ่านจากรูป", "ok"); else show(errShown ? "err" : "tap");
     } else if (wasScanning && stream) {
       scanning = true; setStatus("พร้อมสแกน", "ok"); loop(++token);
     } else if (!stream) {
@@ -390,24 +485,68 @@
     return x.getImageData(0, 0, c.width, c.height);
   }
 
-  $("retryBtn").onclick = function(){ hide("err"); startCamera(); };
+  $("retryBtn").onclick = function(){ hide("err"); if (retryFn) retryFn(); };
   $("tapBtn").onclick = function(){ hide("tap"); startCamera(); };
+  $("tapPhotoBtn").onclick = pickPhoto;
 
   // ปิดกล้องตอนสลับแอป / กลับมาแล้วเปิดใหม่ (รวมถึงกดย้อนกลับจากลิงก์)
   document.addEventListener("visibilitychange", function(){
     if (document.hidden) { if (!going) stopCamera(); }
-    else if (!going && $("err").hidden) startCamera();
+    else if (wantCam && !going && $("err").hidden && $("tap").hidden) startCamera();
   });
   window.addEventListener("pageshow", function(e){
-    if (e.persisted) { going = false; hide("going"); hide("sheet"); startCamera(); }
+    if (e.persisted) { going = false; hide("going"); hide("sheet"); if (wantCam) startCamera(); else boot(); }
   });
 
-  if (!window.ZXingWASM) {
-    showError("โหลดตัวอ่านโค้ดไม่ได้", "ตรวจสอบอินเทอร์เน็ต แล้วกดลองอีกครั้ง", false);
-    $("retryBtn").hidden = false; $("retryBtn").onclick = function(){ location.reload(); };
-  } else {
-    startCamera();
+  // ---------- ติดตั้งเป็นแอป ----------
+  var SHARE_SVG = "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3v12M8 7l4-4 4 4'/><path d='M5 11v9h14v-9'/></svg>";
+  var installEvt = null;
+  function canOfferInstall(){ return !IS_STANDALONE && (IS_IOS || IS_ANDROID || !!installEvt); }
+  function refreshInstallUI(){
+    var on = canOfferInstall();
+    $("installBtn").hidden = !on; $("tapInstallBtn").hidden = !on;
   }
+  function showGuide(){
+    var steps = IS_IOS
+      ? "<li>แตะปุ่ม <span class='kbd'>" + SHARE_SVG + " แชร์</span> ที่แถบของ Safari</li>" +
+        "<li>เลื่อนลง เลือก <b>เพิ่มไปยังหน้าจอโฮม</b></li><li>กด <b>เพิ่ม</b></li>"
+      : "<li>แตะเมนู <span class='kbd'>⋮</span> มุมขวาบนของ Chrome</li>" +
+        "<li>เลือก <b>ติดตั้งแอป</b> หรือ <b>เพิ่มลงในหน้าจอหลัก</b></li><li>กด <b>ติดตั้ง</b></li>";
+    $("guideSteps").innerHTML = steps; show("guide");
+  }
+  async function doInstall(){
+    if (installEvt) {
+      var ev = installEvt; installEvt = null;
+      try { ev.prompt(); await ev.userChoice; } catch (e) { showGuide(); }
+      refreshInstallUI();
+    } else showGuide();
+  }
+  $("installBtn").onclick = doInstall; $("tapInstallBtn").onclick = doInstall;
+  $("guideClose").onclick = function(){ hide("guide"); };
+  window.addEventListener("beforeinstallprompt", function(e){ e.preventDefault(); installEvt = e; refreshInstallUI(); });
+  window.addEventListener("appinstalled", function(){ installEvt = null; IS_STANDALONE = true; refreshInstallUI(); });
+  refreshInstallUI();
+  if ("serviceWorker" in navigator && ON_WEB) {
+    navigator.serviceWorker.register("sw.js").catch(function(){});
+  }
+
+  // เริ่มต้น: เคยอนุญาตแล้ว → เปิดกล้องเลย · ยังไม่เคย → ปุ่มใหญ่ "เปิดกล้อง" (แตะแล้วมือถือขึ้นถามอนุญาต)
+  async function boot(){
+    if (!window.ZXingWASM) {
+      showError("โหลดตัวอ่านโค้ดไม่ได้", "ตรวจสอบอินเทอร์เน็ต แล้วกดโหลดใหม่",
+        {label:"โหลดใหม่", fn:function(){ location.reload(); }});
+      return;
+    }
+    loadLib().catch(function(){});
+    var auto = false;
+    try { auto = sessionStorage.getItem(AUTO_KEY) === "1"; sessionStorage.removeItem(AUTO_KEY); } catch (e) {}
+    if (!ON_WEB || !window.isSecureContext) { startCamera(); return; }
+    var st = await camPerm();
+    if (st === "granted" || auto) startCamera();
+    else if (st === "denied") showError("กล้องถูกปิดไว้", blockedHelp(), {label:"โหลดใหม่", fn:reloadAndStart});
+    else { show("tap"); setStatus("แตะเพื่อเริ่ม", "warn"); }
+  }
+  boot();
 })();
 </script>
 </body>

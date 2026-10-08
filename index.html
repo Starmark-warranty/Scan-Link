@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="สแกนลิงก์">
+<meta name="theme-color" content="#0e141c">
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAACFElEQVR42u3dsY3CMBSAYUCpoQldWIYFmJUFWIYSGjZgAYJA+Nn45fvKK3KS9Z/tSxxYb8dpBa9sDAHiQByIA3EgDsSBOBAH4kAcIA7EgTgQB+JAHIgDcSAOxAHiQByIA3EgDsSBOBAH4kAcIA5mDYbgd4/btc4v2u0PyePIOpSWFcQB4qD9nqPaPmNRO9/oTZWZA3EgDsRBog1pbnEbw7Yb+SH34GJZQRyIA3EgDsSBOBAHiANxIA7EgThorLNH9qUeYc89B46+vpkDywriQBwgDsSBOAiU5NWEb+9bzP281P2Pb69v5sCygjgQB+IAcfB3/8p6VbrHcRsM7i/XyXE/w7KCOBAH4kAciANxkISPmvxIqfMfznNgWUEciAPEwcfW23EqeLnxfDSmbd1PFzMHlhXEgThY8IY0WvRrjM66mjkQB+JAHNS20PdWoj9vw3kOLCuIA8SBOBAH4qCB5Pc53M8wc9DtzPH+z9dT8r8dNzMH4kAciANxkP6/leYb+/rXd54DywriAHEgDsSBOGigs/scHuGaORAH4kAciANxgDgQB+JAHIgDcSAOxEEWvjq0gOgXI5YbR9zIOvxhWUEciANxYEP6amOYdW9ffyTNHFhWEAf2HLYCGXT21aFYVhAH4kAciANxgDgQB+JAHIgDcSAOxIE4EAfiAHEgDsSBOBAH4kAciANxIA4QB+JAHIiDqp76h2AF8XZYHQAAAABJRU5ErkJggg==">
+<link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAACFElEQVR42u3dsY3CMBSAYUCpoQldWIYFmJUFWIYSGjZgAYJA+Nn45fvKK3KS9Z/tSxxYb8dpBa9sDAHiQByIA3EgDsSBOBAH4kAcIA7EgTgQB+JAHIgDcSAOxAHiQByIA3EgDsSBOBAH4kAcIA5mDYbgd4/btc4v2u0PyePIOpSWFcQB4qD9nqPaPmNRO9/oTZWZA3EgDsRBog1pbnEbw7Yb+SH34GJZQRyIA3EgDsSBOBAHiANxIA7EgThorLNH9qUeYc89B46+vpkDywriQBwgDsSBOAiU5NWEb+9bzP281P2Pb69v5sCygjgQB+IAcfB3/8p6VbrHcRsM7i/XyXE/w7KCOBAH4kAciANxkISPmvxIqfMfznNgWUEciAPEwcfW23EqeLnxfDSmbd1PFzMHlhXEgThY8IY0WvRrjM66mjkQB+JAHNS20PdWoj9vw3kOLCuIA8SBOBAH4qCB5Pc53M8wc9DtzPH+z9dT8r8dNzMH4kAciANxkP6/leYb+/rXd54DywriAHEgDsSBOGigs/scHuGaORAH4kAciANxgDgQB+JAHIgDcSAOxEEWvjq0gOgXI5YbR9zIOvxhWUEciANxYEP6amOYdW9ffyTNHFhWEAf2HLYCGXT21aFYVhAH4kAciANxgDgQB+JAHIgDcSAOxIE4EAfiAHEgDsSBOBAH4kAciANxIA4QB+JAHIiDqp76h2AF8XZYHQAAAABJRU5ErkJggg==">
+<title>สแกนเข้าลิงก์</title>
+<style>
+  :root{
+    --bg:#0e141c; --fg:#f4f6f8; --muted:#a3adb8; --line:rgba(255,255,255,.14);
+    --ok:#22c55e; --warn:#f59e0b; --bad:#ef4444; --card:#17202b;
+    --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,BlinkMacSystemFont,"Sukhumvit Set","Noto Sans Thai","Segoe UI",sans-serif;
+    overflow:hidden;overscroll-behavior:none;-webkit-user-select:none;user-select:none}
+  button{font:inherit;color:inherit;border:0;cursor:pointer}
+
+  #stage{position:fixed;inset:0;background:#000}
+  #video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+
+  /* กรอบเล็ง */
+  #box{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);
+    width:min(80vw,380px);aspect-ratio:1.45/1;border-radius:18px;
+    box-shadow:0 0 0 200vmax rgba(0,0,0,.5);transition:box-shadow .15s}
+  #box i{position:absolute;width:34px;height:34px;border:4px solid #fff;border-radius:4px}
+  #box i:nth-child(1){left:-2px;top:-2px;border-right:0;border-bottom:0;border-top-left-radius:16px}
+  #box i:nth-child(2){right:-2px;top:-2px;border-left:0;border-bottom:0;border-top-right-radius:16px}
+  #box i:nth-child(3){left:-2px;bottom:-2px;border-right:0;border-top:0;border-bottom-left-radius:16px}
+  #box i:nth-child(4){right:-2px;bottom:-2px;border-left:0;border-top:0;border-bottom-right-radius:16px}
+  #laser{position:absolute;left:8%;right:8%;height:2px;top:50%;background:var(--ok);
+    box-shadow:0 0 12px var(--ok);opacity:.85;animation:sweep 2.2s ease-in-out infinite}
+  @keyframes sweep{0%,100%{top:14%}50%{top:86%}}
+  body:not(.scanning) #laser{display:none}
+  #box.hit i{border-color:var(--ok)}
+  #box.hit{box-shadow:0 0 0 200vmax rgba(34,197,94,.28)}
+
+  #hint{position:absolute;left:0;right:0;top:calc(44% + min(80vw,380px)/2.9 + 18px);
+    text-align:center;font-size:15px;color:#e5e9ee;text-shadow:0 1px 3px rgba(0,0,0,.8);padding:0 24px}
+
+  header{position:absolute;left:0;right:0;top:0;padding:calc(var(--safe-t) + 12px) 18px 12px;
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    background:linear-gradient(rgba(0,0,0,.55),rgba(0,0,0,0))}
+  header h1{margin:0;font-size:19px;font-weight:700;letter-spacing:.2px}
+  #status{font-size:13px;padding:5px 11px;border-radius:999px;background:rgba(255,255,255,.14);
+    white-space:nowrap;display:flex;align-items:center;gap:6px}
+  #status::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--muted)}
+  #status.ok::before{background:var(--ok)} #status.warn::before{background:var(--warn)} #status.bad::before{background:var(--bad)}
+
+  footer{position:absolute;left:0;right:0;bottom:0;padding:14px 18px calc(var(--safe-b) + 18px);
+    display:flex;justify-content:center;gap:12px;background:linear-gradient(rgba(0,0,0,0),rgba(0,0,0,.6))}
+  .btn{height:50px;padding:0 20px;border-radius:14px;background:rgba(255,255,255,.16);
+    font-size:16px;font-weight:600;display:inline-flex;align-items:center;gap:8px;
+    -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+  .btn:active{transform:scale(.97)}
+  .btn.primary{background:var(--ok);color:#06210f}
+  .btn.on{background:#fde68a;color:#3b2a00}
+  .btn svg{width:22px;height:22px}
+  [hidden]{display:none!important}
+
+  /* แผงผล (โค้ดที่ไม่ใช่ลิงก์) */
+  #sheet{position:absolute;left:12px;right:12px;bottom:calc(var(--safe-b) + 86px);
+    background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px 16px 16px;
+    box-shadow:0 10px 30px rgba(0,0,0,.45)}
+  #sheet .lab{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+  #sheetText{margin:6px 0 12px;font-size:22px;font-weight:700;word-break:break-all;
+    -webkit-user-select:text;user-select:text;font-family:ui-monospace,Menlo,monospace}
+  #sheet .row{display:flex;gap:10px} #sheet .row .btn{flex:1;justify-content:center;height:46px}
+
+  /* หน้าจอเต็ม: กำลังเปิดลิงก์ / ผิดพลาด / แตะเพื่อเริ่ม */
+  .cover{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:24px;background:rgba(14,20,28,.94);gap:14px}
+  .cover h2{margin:0;font-size:22px}
+  .cover p{margin:0;color:var(--muted);font-size:15px;line-height:1.55;max-width:420px}
+  #goUrl{font-family:ui-monospace,Menlo,monospace;font-size:13px;color:#cbd5e1;word-break:break-all;max-width:420px}
+  .spin{width:42px;height:42px;border-radius:50%;border:4px solid rgba(255,255,255,.2);border-top-color:var(--ok);
+    animation:sp .8s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .cover .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:6px}
+</style>
+</head>
+<body>
+<div id="stage">
+  <video id="video" playsinline muted autoplay></video>
+  <div id="box"><i></i><i></i><i></i><i></i><div id="laser"></div></div>
+  <div id="hint">เล็ง Data Matrix / QR / Barcode ให้อยู่ในกรอบ</div>
+</div>
+
+<header>
+  <h1>สแกนเข้าลิงก์</h1>
+  <div id="status">กำลังเตรียม…</div>
+</header>
+
+<div id="sheet" hidden>
+  <div class="lab"><span id="sheetFmt">Code 128</span><span>ไม่ใช่ลิงก์</span></div>
+  <div id="sheetText"></div>
+  <div class="row">
+    <button class="btn" id="copyBtn">คัดลอก</button>
+    <button class="btn primary" id="closeSheet">สแกนต่อ</button>
+  </div>
+</div>
+
+<footer>
+  <button class="btn" id="torchBtn" hidden aria-label="ไฟฉาย">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6l-1 6h4l-8 14 1-9H7z"/></svg>ไฟฉาย
+  </button>
+  <button class="btn" id="photoBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h3l2-3h6l2 3h3v13H4z"/><circle cx="12" cy="13" r="4"/></svg>ถ่ายรูปแทน
+  </button>
+</footer>
+<input type="file" id="photoInput" accept="image/*" capture="environment" hidden>
+
+<div class="cover" id="going" hidden>
+  <div class="spin"></div>
+  <h2>กำลังเปิดลิงก์…</h2>
+  <div id="goUrl"></div>
+</div>
+
+<div class="cover" id="err" hidden>
+  <h2 id="errTitle">เปิดกล้องไม่ได้</h2>
+  <p id="errMsg"></p>
+  <div class="row">
+    <button class="btn primary" id="retryBtn">ลองอีกครั้ง</button>
+    <button class="btn" id="errPhotoBtn">ถ่ายรูปแทน</button>
+  </div>
+</div>
+
+<div class="cover" id="tap" hidden>
+  <h2>แตะเพื่อเปิดกล้อง</h2>
+  <p>แล้วเล็งโค้ดบนสติ๊กเกอร์ ระบบจะเปิดลิงก์ให้เอง</p>
+  <div class="row"><button class="btn primary" id="tapBtn">เปิดกล้อง</button></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.5/dist/iife/reader/index.js"></script>
+<script>
+(function(){
+  "use strict";
+  var FORMATS = ["DataMatrix","QRCode","Code128"];
+  var LABEL = {DataMatrix:"Data Matrix",QRCode:"QR Code",Code128:"Code 128"};
+  var LIVE_OPTS = {formats:FORMATS, tryHarder:true, tryRotate:true, tryInvert:false, tryDownscale:true, maxNumberOfSymbols:4};
+  var PHOTO_OPTS = {formats:FORMATS, tryHarder:true, tryRotate:true, tryInvert:true, tryDownscale:true, maxNumberOfSymbols:8};
+
+  var $ = function(id){ return document.getElementById(id); };
+  var video = $("video"), box = $("box");
+  var canvas = document.createElement("canvas");
+  var ctx = canvas.getContext("2d", {willReadFrequently:true});
+
+  var stream = null, track = null, torchOn = false;
+  var scanning = false, going = false, starting = false, token = 0, shownText = "";
+  var libPromise = null;
+
+  var UA = navigator.userAgent || "";
+  var IS_IOS = /iPhone|iPad|iPod/.test(UA) || (/Macintosh/.test(UA) && navigator.maxTouchPoints > 1);
+  var IS_ANDROID = /Android/i.test(UA);
+  var ON_WEB = location.protocol === "https:" ||
+    (location.protocol === "http:" && /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname));
+  var PERM_HELP = IS_IOS
+    ? "iPhone: ไปที่ <b>ตั้งค่า › Safari › กล้อง</b> เลือก <b>อนุญาต</b> (หรือ <b>ถาม</b>)"
+    : IS_ANDROID
+    ? "Android (Chrome): แตะไอคอน <b>ⓘ / แม่กุญแจ</b> หน้าช่องลิงก์ › <b>สิทธิ์</b> › <b>กล้อง</b> › <b>อนุญาต</b>"
+    : "กดไอคอนหน้าช่องลิงก์ แล้วตั้ง <b>กล้อง</b> เป็น <b>อนุญาต</b>";
+
+  function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+  function setStatus(t, cls){ var s = $("status"); s.textContent = t; s.className = cls || ""; }
+  function show(id){ $(id).hidden = false; } function hide(id){ $(id).hidden = true; }
+
+  function loadLib(){
+    if (!window.ZXingWASM) return Promise.reject(new Error("lib"));
+    if (!libPromise) {
+      libPromise = ZXingWASM.prepareZXingModule({fireImmediately:true});
+      libPromise.catch(function(){ libPromise = null; });
+    }
+    return libPromise;
+  }
+
+  // ข้อความที่สแกนได้ → ลิงก์ (ถ้าเป็นลิงก์)
+  function toUrl(text){
+    var t = String(text || "").trim();
+    if (/^https?:\/\/\S+$/i.test(t)) return t;
+    if (/^www\.[^\s.]+\.\S+$/i.test(t)) return "https://" + t;
+    return null;
+  }
+
+  function showError(title, msg, canRetry){
+    $("errTitle").textContent = title; $("errMsg").innerHTML = msg;
+    $("retryBtn").hidden = !canRetry;
+    show("err"); setStatus("ใช้ไม่ได้", "bad");
+  }
+
+  function camError(e){
+    var n = e && e.name;
+    if (n === "NotAllowedError" || n === "SecurityError")
+      showError("ยังไม่ได้อนุญาตให้ใช้กล้อง", PERM_HELP + "<br>แล้วกด <b>ลองอีกครั้ง</b>", true);
+    else if (n === "NotReadableError" || n === "AbortError")
+      showError("กล้องถูกใช้งานอยู่", "ปิดแอปอื่นที่ใช้กล้องอยู่ แล้วกดลองอีกครั้ง", true);
+    else if (n === "NotFoundError" || n === "OverconstrainedError")
+      showError("ไม่พบกล้อง", "เครื่องนี้ไม่มีกล้องที่ใช้ได้ ลองกด “ถ่ายรูปแทน”", false);
+    else
+      showError("เปิดกล้องไม่ได้", "ลองกดลองอีกครั้ง หรือใช้ “ถ่ายรูปแทน”", true);
+  }
+
+  async function startCamera(){
+    if (going || starting || stream) return;
+    hide("err"); hide("tap");
+    if (!ON_WEB || !window.isSecureContext) {
+      showError("ต้องเปิดจากลิงก์ https://",
+        "ตอนนี้เปิดเป็นไฟล์ในเครื่อง มือถือจะไม่ยอมให้ใช้กล้อง (และไม่ขึ้นถามด้วย)<br>" +
+        "ให้เปิดจากลิงก์เว็บที่ขึ้นต้นด้วย <b>https://</b> แทน<br>ระหว่างนี้ใช้ <b>ถ่ายรูปแทน</b> ได้", false);
+      return;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      showError("เบราว์เซอร์นี้เปิดกล้องไม่ได้", "ให้เปิดหน้านี้ด้วย Safari หรือใช้ “ถ่ายรูปแทน”", false);
+      return;
+    }
+    starting = true;
+    setStatus("กำลังเปิดกล้อง…", "warn");
+    loadLib().catch(function(){});           // โหลดตัวอ่านไปพร้อมกัน
+    var my = ++token;
+    try {
+      var s = await navigator.mediaDevices.getUserMedia({audio:false,
+        video:{facingMode:{ideal:"environment"}, width:{ideal:1920}, height:{ideal:1080}}});
+      if (my !== token || going) { s.getTracks().forEach(function(t){ t.stop(); }); return; }
+      stream = s; track = s.getVideoTracks()[0];
+      video.srcObject = s;
+      try { await video.play(); }
+      catch (e) { stopCamera(); show("tap"); setStatus("แตะเพื่อเริ่ม", "warn"); return; }
+      setupTorch();
+      try { await loadLib(); }
+      catch (e) { stopCamera(); showError("โหลดตัวอ่านโค้ดไม่ได้", "ตรวจสอบอินเทอร์เน็ต แล้วกดลองอีกครั้ง", true); return; }
+      if (my !== token) return;
+      scanning = true; document.body.classList.add("scanning");
+      setStatus("พร้อมสแกน", "ok");
+      loop(my);
+    } catch (e) {
+      camError(e);
+    } finally {
+      starting = false;
+    }
+  }
+
+  function stopCamera(){
+    scanning = false; token++; document.body.classList.remove("scanning");
+    if (stream) stream.getTracks().forEach(function(t){ t.stop(); });
+    stream = null; track = null; torchOn = false;
+    $("torchBtn").classList.remove("on");
+    video.srcObject = null;
+  }
+
+  // ตัดเฉพาะส่วนรอบกรอบเล็ง (ขยายขอบเผื่อ 35%) ส่งให้ตัวอ่าน
+  function grabFrame(){
+    var vw = video.videoWidth, vh = video.videoHeight;
+    var r = video.getBoundingClientRect(), b = box.getBoundingClientRect();
+    var sc = Math.max(r.width / vw, r.height / vh);
+    var offX = r.left + (r.width - vw * sc) / 2, offY = r.top + (r.height - vh * sc) / 2;
+    var mx = b.width * 0.35, my = b.height * 0.35;
+    var sx = Math.max(0, (b.left - mx - offX) / sc), sy = Math.max(0, (b.top - my - offY) / sc);
+    var sw = Math.min(vw - sx, (b.width + 2 * mx) / sc), sh = Math.min(vh - sy, (b.height + 2 * my) / sc);
+    var k = Math.min(1, 1280 / Math.max(sw, sh));
+    var cw = Math.round(sw * k), ch = Math.round(sh * k);
+    if (canvas.width !== cw || canvas.height !== ch) { canvas.width = cw; canvas.height = ch; }
+    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, cw, ch);
+    return ctx.getImageData(0, 0, cw, ch);
+  }
+
+  async function loop(my){
+    while (scanning && my === token) {
+      if (video.readyState >= 2 && video.videoWidth) {
+        var t0 = performance.now();
+        try {
+          var res = await ZXingWASM.readBarcodes(grabFrame(), LIVE_OPTS);
+          if (my !== token) return;
+          handle(res);
+        } catch (e) { console.warn(e); }
+        await sleep(Math.max(40, 140 - (performance.now() - t0)));
+      } else {
+        await sleep(100);
+      }
+    }
+  }
+
+  function handle(res){
+    var ok = (res || []).filter(function(r){ return r.isValid && r.text; });
+    if (!ok.length) return false;
+    for (var i = 0; i < ok.length; i++) {
+      var u = toUrl(ok[i].text);
+      if (u) { go(u); return true; }
+    }
+    showText(ok[0]);
+    return true;
+  }
+
+  function flash(){ box.classList.add("hit"); setTimeout(function(){ box.classList.remove("hit"); }, 500); }
+
+  function go(url){
+    if (going) return;
+    going = true; flash();
+    hide("sheet");
+    $("goUrl").textContent = url; show("going");
+    setStatus("เปิดลิงก์", "ok");
+    stopCamera();
+    setTimeout(function(){ location.href = url; }, 150);
+  }
+
+  function showText(r){
+    var t = String(r.text).trim();
+    if (t === shownText && !$("sheet").hidden) return;
+    shownText = t; flash();
+    $("sheetFmt").textContent = LABEL[r.format] || r.format || "โค้ด";
+    $("sheetText").textContent = t;
+    $("copyBtn").textContent = "คัดลอก";
+    show("sheet");
+  }
+
+  function setupTorch(){
+    var caps = {};
+    try { caps = track && track.getCapabilities ? track.getCapabilities() : {}; } catch (e) {}
+    $("torchBtn").hidden = !caps.torch;
+  }
+
+  $("torchBtn").onclick = function(){
+    if (!track) return;
+    torchOn = !torchOn;
+    track.applyConstraints({advanced:[{torch:torchOn}]}).then(function(){
+      $("torchBtn").classList.toggle("on", torchOn);
+    }).catch(function(){ torchOn = false; $("torchBtn").hidden = true; });
+  };
+
+  $("copyBtn").onclick = function(){
+    var t = $("sheetText").textContent;
+    var done = function(){ $("copyBtn").textContent = "คัดลอกแล้ว ✓"; };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, fallbackCopy);
+    else fallbackCopy();
+    function fallbackCopy(){
+      var ta = document.createElement("textarea"); ta.value = t; document.body.appendChild(ta);
+      ta.select(); try { document.execCommand("copy"); done(); } catch (e) {} ta.remove();
+    }
+  };
+  $("closeSheet").onclick = function(){ hide("sheet"); shownText = ""; };
+
+  // ถ่ายรูปแทน (ใช้ได้แม้ไม่ได้อนุญาตกล้องสด)
+  function pickPhoto(){ $("photoInput").value = ""; $("photoInput").click(); }
+  $("photoBtn").onclick = pickPhoto; $("errPhotoBtn").onclick = pickPhoto;
+  $("photoInput").onchange = async function(){
+    var f = this.files && this.files[0]; if (!f) return;
+    var wasScanning = scanning, errShown = !$("err").hidden;
+    scanning = false; token++;
+    hide("err");
+    setStatus("กำลังอ่านรูป…", "warn");
+    var found = false;
+    try {
+      await loadLib();
+      var img = await fileToImageData(f, 2400);
+      found = handle(await ZXingWASM.readBarcodes(img, PHOTO_OPTS));
+      if (!found) alert("ไม่พบโค้ดในรูป\nลองถ่ายใหม่ให้ใกล้ขึ้นและไม่เบลอ");
+    } catch (e) {
+      alert("อ่านรูปไม่ได้ ลองใหม่อีกครั้ง");
+    }
+    if (going) return;
+    if (errShown) {                       // กล้องสดใช้ไม่ได้อยู่แล้ว
+      if (found) setStatus("อ่านจากรูป", "ok"); else show("err");
+    } else if (wasScanning && stream) {
+      scanning = true; setStatus("พร้อมสแกน", "ok"); loop(++token);
+    } else if (!stream) {
+      startCamera();
+    }
+  };
+
+  async function fileToImageData(file, maxSide){
+    var src, w, h;
+    try { src = await createImageBitmap(file); w = src.width; h = src.height; }
+    catch (e) {
+      src = await new Promise(function(res, rej){
+        var im = new Image(), u = URL.createObjectURL(file);
+        im.onload = function(){ URL.revokeObjectURL(u); res(im); };
+        im.onerror = function(){ URL.revokeObjectURL(u); rej(new Error("img")); };
+        im.src = u;
+      });
+      w = src.naturalWidth; h = src.naturalHeight;
+    }
+    var k = Math.min(1, maxSide / Math.max(w, h));
+    var c = document.createElement("canvas"); c.width = Math.round(w * k); c.height = Math.round(h * k);
+    var x = c.getContext("2d", {willReadFrequently:true}); x.drawImage(src, 0, 0, c.width, c.height);
+    return x.getImageData(0, 0, c.width, c.height);
+  }
+
+  $("retryBtn").onclick = function(){ hide("err"); startCamera(); };
+  $("tapBtn").onclick = function(){ hide("tap"); startCamera(); };
+
+  // ปิดกล้องตอนสลับแอป / กลับมาแล้วเปิดใหม่ (รวมถึงกดย้อนกลับจากลิงก์)
+  document.addEventListener("visibilitychange", function(){
+    if (document.hidden) { if (!going) stopCamera(); }
+    else if (!going && $("err").hidden) startCamera();
+  });
+  window.addEventListener("pageshow", function(e){
+    if (e.persisted) { going = false; hide("going"); hide("sheet"); startCamera(); }
+  });
+
+  if (!window.ZXingWASM) {
+    showError("โหลดตัวอ่านโค้ดไม่ได้", "ตรวจสอบอินเทอร์เน็ต แล้วกดลองอีกครั้ง", false);
+    $("retryBtn").hidden = false; $("retryBtn").onclick = function(){ location.reload(); };
+  } else {
+    startCamera();
+  }
+})();
+</script>
+</body>
+</html>

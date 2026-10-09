@@ -556,6 +556,21 @@
     var t = $("toast"); t.textContent = msg; t.hidden = false;
     clearTimeout(toast.t); toast.t = setTimeout(function(){ t.hidden = true; }, 4500);
   }
+  // ติดตั้งแล้วแต่ไม่เห็นไอคอน: มือถือหลายยี่ห้อปิดสิทธิ์ "ทางลัดหน้าจอหลัก" ของ Chrome ไว้
+  var SHORTCUT_FIX = "<li>ถ้าไม่เห็นบนหน้าจอหลัก ให้ปัดขึ้นหา<b>ในหน้ารวมแอป</b> แล้วกดค้างลากมาวาง</li>" +
+    "<li>มือถือ <b>OPPO / realme / vivo / Xiaomi / Huawei</b> ถ้ายังไม่มี:<br>" +
+    "<b>ตั้งค่า › แอป › Chrome › สิทธิ์</b> แล้วเปิด <b>ทางลัดหน้าจอหลัก</b> (หรือ <b>สร้างทางลัด</b>) แล้วกดติดตั้งใหม่</li>";
+  function showInstalledHelp(already){
+    $("guideTitle").textContent = already ? "ติดตั้งไว้แล้ว ✓" : "ติดตั้งแล้ว ✓";
+    $("guideCopy").hidden = true;
+    $("guideSteps").innerHTML = (already
+      ? "<li>เปิดจากไอคอน <b>“สแกนลิงก์”</b> บนหน้าจอหลัก</li>"
+      : "<li>รอ 5–10 วินาที ไอคอน <b>“สแกนลิงก์”</b> จะขึ้นบนหน้าจอ</li>") + SHORTCUT_FIX;
+    $("guideFoot").innerHTML = "";
+    show("guide");
+  }
+  var alreadyInstalled = false;
+
   function showGuide(){
     var steps, foot = "จะได้ไอคอน <b>“สแกนลิงก์”</b> บนหน้าจอ แตะเปิดได้เหมือนแอป";
     $("guideTitle").textContent = "ติดตั้งเป็นแอป";
@@ -584,16 +599,19 @@
     } else {
       steps = "<li>แตะเมนู <span class='kbd'>⋮</span> มุมขวาบนของ Chrome</li>" +
         "<li>เลือก <b>ติดตั้งแอป</b> หรือ <b>เพิ่มลงในหน้าจอหลัก</b></li><li>แตะ <b>ติดตั้ง</b></li>";
+      foot += "<br><small>กดแล้วไอคอนไม่ขึ้น? มือถือ OPPO / realme / vivo / Xiaomi ต้องเปิดสิทธิ์ " +
+        "<b>ทางลัดหน้าจอหลัก</b> ให้ Chrome ก่อน: ตั้งค่า › แอป › Chrome › สิทธิ์</small>";
     }
     $("guideSteps").innerHTML = steps; $("guideFoot").innerHTML = foot; show("guide");
   }
   async function doInstall(){
+    if (alreadyInstalled) { showInstalledHelp(true); return; }
     if (installEvt && !INAPP) {
       var ev = installEvt; installEvt = null;     // Android: ขึ้นหน้าต่างติดตั้งของเครื่องทันที
       try {
         ev.prompt();
         var c = await ev.userChoice;
-        if (c && c.outcome === "accepted") toast("กำลังติดตั้ง… ไอคอน “สแกนลิงก์” จะอยู่บนหน้าจอหลัก");
+        if (c && c.outcome === "accepted") showInstalledHelp(false);
       } catch (e) { showGuide(); }
       refreshInstallUI();
     } else showGuide();
@@ -612,6 +630,17 @@
     toast("ติดตั้งแล้ว ✓ เปิดจากไอคอน “สแกนลิงก์” บนหน้าจอได้เลย");
   });
   refreshInstallUI();
+  // Android Chrome: เช็คว่าเครื่องนี้ติดตั้งแอปไว้แล้วหรือยัง (ติดตั้งแล้ว Chrome จะไม่ให้กดติดตั้งซ้ำ)
+  if (navigator.getInstalledRelatedApps && !IS_STANDALONE) {
+    navigator.getInstalledRelatedApps().then(function(apps){
+      if (!apps || !apps.length) return;
+      alreadyInstalled = true;
+      $("tapInstall").querySelector("b").textContent = "ติดตั้งไว้แล้ว ✓";
+      $("tapInstall").querySelector("span").textContent = "เปิดจากไอคอน “สแกนลิงก์” ได้เลย";
+      $("tapInstallBtn").textContent = "ไอคอนอยู่ไหน?";
+      $("installBtn").hidden = true;
+    }).catch(function(){});
+  }
   if ("serviceWorker" in navigator && ON_WEB) {
     navigator.serviceWorker.register("sw.js").catch(function(){});
   }

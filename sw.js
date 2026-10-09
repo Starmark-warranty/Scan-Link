@@ -1,7 +1,7 @@
 // Service worker ของแอปสแกน: ทำให้ติดตั้งได้ + เปิดเร็วขึ้น
 // หน้าแอป = ดึงจากเน็ตก่อน (ได้เวอร์ชันใหม่เสมอ) ไม่มีเน็ตค่อยใช้ของที่เก็บไว้
 // ตัวอ่านโค้ด (zxing จาก jsdelivr, เวอร์ชันล็อกไว้) = ใช้ของที่เก็บไว้ก่อน
-const CACHE = "scanlink-v2";
+const CACHE = "scanlink-v3";
 const SHELL = ["./", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-180.png"];
 const LIB = "https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.5/";
 const WASM = "https://fastly.jsdelivr.net/npm/zxing-wasm@3.1.5/";

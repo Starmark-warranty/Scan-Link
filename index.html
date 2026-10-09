@@ -105,6 +105,21 @@
   .steps{text-align:left;margin:0;padding-left:24px;font-size:17px;line-height:1.5;max-width:340px}
   .steps li{margin:10px 0}
   .steps svg{width:20px;height:20px;vertical-align:-4px}
+  .inst{display:flex;align-items:center;gap:12px;width:min(92vw,400px);text-align:left;
+    background:#fff;color:#0e141c;border-radius:18px;padding:12px 12px 12px 12px;
+    box-shadow:0 8px 26px rgba(0,0,0,.45);margin-bottom:14px}
+  .inst img{width:54px;height:54px;border-radius:13px;flex:none}
+  .inst-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  .inst-t b{font-size:16px}
+  .inst-t span{font-size:13px;color:#4b5563;line-height:1.35}
+  .btn.install{background:#0e141c;color:#fff;height:44px;padding:0 16px;font-size:16px;flex:none;
+    -webkit-backdrop-filter:none;backdrop-filter:none}
+  footer .btn.install{background:#fff;color:#0e141c}
+  #guide{background:var(--bg)}
+  .note{font-size:14px;color:var(--warn);max-width:360px;line-height:1.5}
+  #toast{position:fixed;left:50%;top:calc(var(--safe-t) + 70px);transform:translateX(-50%);
+    background:var(--ok);color:#06210f;font-weight:700;padding:12px 18px;border-radius:14px;
+    box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:90vw;text-align:center;z-index:9}
   .kbd{display:inline-block;padding:0 7px;border-radius:6px;background:rgba(255,255,255,.14);color:var(--fg);font-weight:700}
 </style>
 </head>
@@ -133,7 +148,7 @@
   <button class="btn" id="torchBtn" hidden aria-label="ไฟฉาย">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6l-1 6h4l-8 14 1-9H7z"/></svg>
   </button>
-  <button class="btn" id="installBtn" hidden>
+  <button class="btn install" id="installBtn" hidden>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>ติดตั้งแอป
   </button>
   <button class="btn" id="photoBtn">
@@ -158,6 +173,11 @@
 </div>
 
 <div class="cover" id="tap" hidden>
+  <div class="inst" id="tapInstall" hidden>
+    <img src="icon-180.png" alt="">
+    <div class="inst-t"><b>ติดตั้งแอปลงมือถือ</b><span>ครั้งต่อไปแตะไอคอน แล้วสแกนได้เลย</span></div>
+    <button class="btn install" id="tapInstallBtn">ติดตั้ง</button>
+  </div>
   <h2>แตะปุ่มเพื่อเปิดกล้อง</h2>
   <p>จะมีหน้าต่างเด้งขึ้นมาถาม ให้กด <b class="yes-t">อนุญาต</b></p>
   <div class="mock" aria-hidden="true">
@@ -168,15 +188,19 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h3l2-3h6l2 3h3v13H4z"/><circle cx="12" cy="13" r="4"/></svg>เปิดกล้อง
   </button>
   <button class="link" id="tapPhotoBtn">หรือ ถ่ายรูปแทน</button>
-  <button class="link" id="tapInstallBtn" hidden>⬇ ติดตั้งเป็นแอปบนมือถือ</button>
 </div>
 
 <div class="cover" id="guide" hidden>
-  <h2>ติดตั้งเป็นแอป</h2>
+  <h2 id="guideTitle">ติดตั้งเป็นแอป</h2>
   <ol class="steps" id="guideSteps"></ol>
-  <p>จะได้ไอคอน <b>“สแกนลิงก์”</b> บนหน้าจอ แตะเปิดได้เหมือนแอป</p>
-  <button class="btn primary" id="guideClose">เข้าใจแล้ว</button>
+  <p id="guideFoot">จะได้ไอคอน <b>“สแกนลิงก์”</b> บนหน้าจอ แตะเปิดได้เหมือนแอป</p>
+  <div class="row">
+    <button class="btn" id="guideCopy" hidden>คัดลอกลิงก์</button>
+    <button class="btn primary" id="guideClose">เข้าใจแล้ว</button>
+  </div>
 </div>
+
+<div id="toast" hidden></div>
 
 <script src="https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.5/dist/iife/reader/index.js"></script>
 <script>
@@ -500,31 +524,93 @@
 
   // ---------- ติดตั้งเป็นแอป ----------
   var SHARE_SVG = "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3v12M8 7l4-4 4 4'/><path d='M5 11v9h14v-9'/></svg>";
+  var ADD_SVG = "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='4' y='4' width='16' height='16' rx='4'/><path d='M12 8v8M8 12h8'/></svg>";
+  var IS_SAMSUNG = /SamsungBrowser/i.test(UA);
+  var IS_IOS_CHROME = IS_IOS && /CriOS|EdgiOS/i.test(UA);
+  // เบราว์เซอร์ในแอปแชท (LINE / Facebook / IG / TikTok): ติดตั้งไม่ได้ ต้องเปิดใน Safari / Chrome
+  var INAPP = /\bLine\//i.test(UA) ? "LINE"
+    : /FBAN|FBAV|FB_IAB|FBIOS|Messenger/i.test(UA) ? "Facebook"
+    : /Instagram/i.test(UA) ? "Instagram"
+    : /musical_ly|Bytedance|TikTok/i.test(UA) ? "TikTok" : "";
+
+  // เปิดจาก LINE → ส่งออกไปเปิดในเบราว์เซอร์ของเครื่องให้เอง (ครั้งเดียว)
+  (function(){
+    var q = new URLSearchParams(location.search);
+    if (INAPP === "LINE" && !q.has("openExternalBrowser")) {
+      q.set("openExternalBrowser", "1");
+      location.replace(location.pathname + "?" + q.toString() + location.hash);
+    } else if (!INAPP && q.has("openExternalBrowser")) {
+      q.delete("openExternalBrowser");               // เก็บลิงก์ให้สะอาด ก่อนกดติดตั้ง
+      var qs = q.toString();
+      try { history.replaceState(null, "", location.pathname + (qs ? "?" + qs : "") + location.hash); } catch (e) {}
+    }
+  })();
+
   var installEvt = null;
   function canOfferInstall(){ return !IS_STANDALONE && (IS_IOS || IS_ANDROID || !!installEvt); }
   function refreshInstallUI(){
     var on = canOfferInstall();
-    $("installBtn").hidden = !on; $("tapInstallBtn").hidden = !on;
+    $("installBtn").hidden = !on; $("tapInstall").hidden = !on;
+  }
+  function toast(msg){
+    var t = $("toast"); t.textContent = msg; t.hidden = false;
+    clearTimeout(toast.t); toast.t = setTimeout(function(){ t.hidden = true; }, 4500);
   }
   function showGuide(){
-    var steps = IS_IOS
-      ? "<li>แตะปุ่ม <span class='kbd'>" + SHARE_SVG + " แชร์</span> ที่แถบของ Safari</li>" +
-        "<li>เลื่อนลง เลือก <b>เพิ่มไปยังหน้าจอโฮม</b></li><li>กด <b>เพิ่ม</b></li>"
-      : "<li>แตะเมนู <span class='kbd'>⋮</span> มุมขวาบนของ Chrome</li>" +
-        "<li>เลือก <b>ติดตั้งแอป</b> หรือ <b>เพิ่มลงในหน้าจอหลัก</b></li><li>กด <b>ติดตั้ง</b></li>";
-    $("guideSteps").innerHTML = steps; show("guide");
+    var steps, foot = "จะได้ไอคอน <b>“สแกนลิงก์”</b> บนหน้าจอ แตะเปิดได้เหมือนแอป";
+    $("guideTitle").textContent = "ติดตั้งเป็นแอป";
+    $("guideCopy").hidden = true;
+    if (INAPP) {
+      $("guideTitle").textContent = "เปิดใน " + (IS_IOS ? "Safari" : "Chrome") + " ก่อน";
+      steps = "<li>ตอนนี้เปิดอยู่ในแอป <b>" + INAPP + "</b> ซึ่งติดตั้งแอปไม่ได้</li>" +
+        "<li>แตะ <span class='kbd'>•••</span> หรือ <span class='kbd'>⋮</span> มุมจอ แล้วเลือก <b>เปิดใน" +
+        (IS_IOS ? " Safari" : "เบราว์เซอร์") + "</b></li>" +
+        "<li>หรือกด <b>คัดลอกลิงก์</b> แล้วไปวางใน " + (IS_IOS ? "Safari" : "Chrome") + "</li>";
+      foot = "จากนั้นกด <b>ติดตั้ง</b> อีกครั้งในหน้านั้น";
+      $("guideCopy").hidden = false;
+    } else if (IS_IOS && IS_IOS_CHROME) {
+      steps = "<li>แตะปุ่ม <span class='kbd'>" + SHARE_SVG + "</span> ที่ช่องลิงก์ด้านบน</li>" +
+        "<li>เลือก <span class='kbd'>" + ADD_SVG + "</span> <b>เพิ่มไปยังหน้าจอโฮม</b></li><li>แตะ <b>เพิ่ม</b></li>";
+    } else if (IS_IOS) {
+      steps = "<li>แตะปุ่ม <span class='kbd'>" + SHARE_SVG + " แชร์</span> ของ Safari<br>" +
+        "<small>(ถ้าไม่เห็น แตะ <span class='kbd'>•••</span> ที่แถบล่างก่อน)</small></li>" +
+        "<li>เลื่อนลงหา <span class='kbd'>" + ADD_SVG + "</span> <b>เพิ่มไปยังหน้าจอโฮม</b><br>" +
+        "<small>(ถ้าไม่เห็น แตะ <b>ดูเพิ่มเติม</b>)</small></li>" +
+        "<li>แตะ <b>เพิ่ม</b> มุมขวาบน</li>";
+      foot += "<br><small>iPhone ไม่มีปุ่มติดตั้งอัตโนมัติ ต้องทำ 3 ขั้นนี้ครั้งเดียว</small>";
+    } else if (IS_SAMSUNG) {
+      steps = "<li>แตะเมนู <span class='kbd'>☰</span> มุมขวาล่าง</li>" +
+        "<li>เลือก <b>เพิ่มหน้าไปที่</b> › <b>หน้าจอหลัก</b></li><li>แตะ <b>เพิ่ม</b></li>";
+    } else {
+      steps = "<li>แตะเมนู <span class='kbd'>⋮</span> มุมขวาบนของ Chrome</li>" +
+        "<li>เลือก <b>ติดตั้งแอป</b> หรือ <b>เพิ่มลงในหน้าจอหลัก</b></li><li>แตะ <b>ติดตั้ง</b></li>";
+    }
+    $("guideSteps").innerHTML = steps; $("guideFoot").innerHTML = foot; show("guide");
   }
   async function doInstall(){
-    if (installEvt) {
-      var ev = installEvt; installEvt = null;
-      try { ev.prompt(); await ev.userChoice; } catch (e) { showGuide(); }
+    if (installEvt && !INAPP) {
+      var ev = installEvt; installEvt = null;     // Android: ขึ้นหน้าต่างติดตั้งของเครื่องทันที
+      try {
+        ev.prompt();
+        var c = await ev.userChoice;
+        if (c && c.outcome === "accepted") toast("กำลังติดตั้ง… ไอคอน “สแกนลิงก์” จะอยู่บนหน้าจอหลัก");
+      } catch (e) { showGuide(); }
       refreshInstallUI();
     } else showGuide();
   }
   $("installBtn").onclick = doInstall; $("tapInstallBtn").onclick = doInstall;
   $("guideClose").onclick = function(){ hide("guide"); };
+  $("guideCopy").onclick = function(){
+    var u = location.origin + location.pathname, b = $("guideCopy");
+    var done = function(){ b.textContent = "คัดลอกแล้ว ✓"; };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(u).then(done, function(){ prompt("คัดลอกลิงก์นี้", u); });
+    else prompt("คัดลอกลิงก์นี้", u);
+  };
   window.addEventListener("beforeinstallprompt", function(e){ e.preventDefault(); installEvt = e; refreshInstallUI(); });
-  window.addEventListener("appinstalled", function(){ installEvt = null; IS_STANDALONE = true; refreshInstallUI(); });
+  window.addEventListener("appinstalled", function(){
+    installEvt = null; IS_STANDALONE = true; refreshInstallUI();
+    toast("ติดตั้งแล้ว ✓ เปิดจากไอคอน “สแกนลิงก์” บนหน้าจอได้เลย");
+  });
   refreshInstallUI();
   if ("serviceWorker" in navigator && ON_WEB) {
     navigator.serviceWorker.register("sw.js").catch(function(){});

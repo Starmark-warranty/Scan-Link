@@ -62,8 +62,9 @@
     -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
   .btn:active{transform:scale(.97)}
   .btn.primary{background:var(--ok);color:#06210f}
-  footer .btn{padding:0 15px;font-size:15px}
-  footer #torchBtn{width:50px;padding:0;justify-content:center}
+  footer{gap:10px;padding-left:12px;padding-right:12px}
+  footer .btn{flex-direction:column;justify-content:center;gap:3px;height:62px;min-width:70px;
+    padding:0 10px;font-size:13px;line-height:1.1}
   .btn.on{background:#fde68a;color:#3b2a00}
   .btn svg{width:22px;height:22px}
   [hidden]{display:none!important}
@@ -91,6 +92,8 @@
   .btn.big svg{width:26px;height:26px}
   .link{background:none;color:var(--muted);font-size:15px;text-decoration:underline;padding:8px}
   .yes-t{color:var(--ok)}
+  .alt{color:var(--muted);font-size:15px;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:2px}
+  .alt .link{padding:8px 6px;color:var(--fg)}
   .mock{width:min(78vw,290px);background:#f2f2f7;color:#111;border-radius:14px;overflow:hidden;
     box-shadow:0 8px 24px rgba(0,0,0,.4);margin:4px 0 8px}
   .mock-t{padding:14px 12px;font-size:14px;font-weight:600;border-bottom:1px solid #d1d1d6}
@@ -115,6 +118,8 @@
   .btn.install{background:#0e141c;color:#fff;height:44px;padding:0 16px;font-size:16px;flex:none;
     -webkit-backdrop-filter:none;backdrop-filter:none}
   footer .btn.install{background:#fff;color:#0e141c}
+  footer .btn, footer .btn.install{flex:1 1 0;max-width:96px;min-width:0;height:62px;padding:0 4px;
+    font-size:13px;white-space:nowrap;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
   #guide{background:var(--bg)}
   .note{font-size:14px;color:var(--warn);max-width:360px;line-height:1.5}
   #toast{position:fixed;left:50%;top:calc(var(--safe-t) + 70px);transform:translateX(-50%);
@@ -146,16 +151,20 @@
 
 <footer>
   <button class="btn" id="torchBtn" hidden aria-label="ไฟฉาย">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6l-1 6h4l-8 14 1-9H7z"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6l-1 6h4l-8 14 1-9H7z"/></svg>ไฟฉาย
   </button>
   <button class="btn install" id="installBtn" hidden>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>ติดตั้งแอป
   </button>
   <button class="btn" id="photoBtn">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h3l2-3h6l2 3h3v13H4z"/><circle cx="12" cy="13" r="4"/></svg>ถ่ายรูปแทน
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h3l2-3h6l2 3h3v13H4z"/><circle cx="12" cy="13" r="4"/></svg>ถ่ายรูป
+  </button>
+  <button class="btn" id="galleryBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>รูปในเครื่อง
   </button>
 </footer>
 <input type="file" id="photoInput" accept="image/*" capture="environment" hidden>
+<input type="file" id="galleryInput" accept="image/*" hidden>
 
 <div class="cover" id="going" hidden>
   <div class="spin"></div>
@@ -169,6 +178,7 @@
   <div class="row">
     <button class="btn primary" id="retryBtn">ลองอีกครั้ง</button>
     <button class="btn" id="errPhotoBtn">ถ่ายรูปแทน</button>
+    <button class="btn" id="errGalleryBtn">รูปในเครื่อง</button>
   </div>
 </div>
 
@@ -187,7 +197,9 @@
   <button class="btn primary big" id="tapBtn">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h3l2-3h6l2 3h3v13H4z"/><circle cx="12" cy="13" r="4"/></svg>เปิดกล้อง
   </button>
-  <button class="link" id="tapPhotoBtn">หรือ ถ่ายรูปแทน</button>
+  <div class="alt">ไม่ใช้กล้องสด:
+    <button class="link" id="tapPhotoBtn">ถ่ายรูป</button>·<button class="link" id="tapGalleryBtn">เลือกรูปในเครื่อง</button>
+  </div>
 </div>
 
 <div class="cover" id="guide" hidden>
@@ -463,11 +475,32 @@
     if (!stream && !starting && !going) boot();      // ยังไม่มีกล้องสด → กลับไปหน้าเริ่ม
   };
 
-  // ถ่ายรูปแทน (ใช้ได้แม้ไม่ได้อนุญาตกล้องสด)
+  // ถ่ายรูป / เลือกรูปในเครื่อง (ใช้ได้แม้ไม่ได้อนุญาตกล้องสด)
   function pickPhoto(){ $("photoInput").value = ""; $("photoInput").click(); }
+  function pickGallery(){ $("galleryInput").value = ""; $("galleryInput").click(); }
   $("photoBtn").onclick = pickPhoto; $("errPhotoBtn").onclick = pickPhoto;
-  $("photoInput").onchange = async function(){
-    var f = this.files && this.files[0]; if (!f) return;
+  $("galleryBtn").onclick = pickGallery; $("errGalleryBtn").onclick = pickGallery;
+  $("photoInput").onchange = function(){ scanFile(this.files && this.files[0], false); };
+  $("galleryInput").onchange = function(){ scanFile(this.files && this.files[0], true); };
+
+  // อ่านหลายขนาด: รูปจากคลังมักใหญ่ (12MP+) โค้ดเล็กในรูปใหญ่ต้องอ่านที่ความละเอียดสูงขึ้น
+  // เจอแค่ Barcode (ไม่ใช่ลิงก์) ยังอ่านต่อที่ขนาดใหญ่ขึ้น เผื่อ Data Matrix ที่เป็นลิงก์อยู่ในรูปเดียวกัน
+  async function decodeFile(f){
+    var sizes = [2000, 3600, 5000], last = 0, best = [];
+    for (var i = 0; i < sizes.length; i++) {
+      var img = await fileToImageData(f, sizes[i]);
+      var side = Math.max(img.width, img.height);
+      if (side <= last) break;                      // รูปเล็กกว่าขนาดนี้แล้ว ไม่ต้องอ่านซ้ำ
+      last = side;
+      var res = (await ZXingWASM.readBarcodes(img, PHOTO_OPTS) || []).filter(function(r){ return r.isValid && r.text; });
+      if (res.some(function(r){ return toUrl(r.text); })) return res;
+      if (res.length > best.length) best = res;
+    }
+    return best;
+  }
+
+  async function scanFile(f, fromGallery){
+    if (!f) return;
     var wasScanning = scanning, errShown = !$("err").hidden, tapShown = !$("tap").hidden;
     scanning = false; token++;
     hide("err"); hide("tap");
@@ -475,11 +508,12 @@
     var found = false;
     try {
       await loadLib();
-      var img = await fileToImageData(f, 2400);
-      found = handle(await ZXingWASM.readBarcodes(img, PHOTO_OPTS));
-      if (!found) alert("ไม่พบโค้ดในรูป\nลองถ่ายใหม่ให้ใกล้ขึ้นและไม่เบลอ");
+      found = handle(await decodeFile(f));
+      if (!found) alert(fromGallery
+        ? "ไม่พบโค้ดในรูปนี้\nเลือกรูปที่เห็นโค้ดชัด ๆ ไม่เบลอ (ซูมเข้าใกล้โค้ดได้ยิ่งดี)"
+        : "ไม่พบโค้ดในรูป\nลองถ่ายใหม่ให้ใกล้ขึ้นและไม่เบลอ");
     } catch (e) {
-      alert("อ่านรูปไม่ได้ ลองใหม่อีกครั้ง");
+      alert("เปิดรูปนี้ไม่ได้ ลองเลือกรูปอื่น");
     }
     if (going) return;
     if (errShown || tapShown) {           // ยังไม่ได้เปิดกล้องสด → ไม่เปิดเอง
@@ -489,7 +523,7 @@
     } else if (!stream) {
       startCamera();
     }
-  };
+  }
 
   async function fileToImageData(file, maxSide){
     var src, w, h;
@@ -505,13 +539,15 @@
     }
     var k = Math.min(1, maxSide / Math.max(w, h));
     var c = document.createElement("canvas"); c.width = Math.round(w * k); c.height = Math.round(h * k);
-    var x = c.getContext("2d", {willReadFrequently:true}); x.drawImage(src, 0, 0, c.width, c.height);
+    var x = c.getContext("2d", {willReadFrequently:true});
+    x.imageSmoothingEnabled = true; x.imageSmoothingQuality = "high";
+    x.drawImage(src, 0, 0, c.width, c.height);
     return x.getImageData(0, 0, c.width, c.height);
   }
 
   $("retryBtn").onclick = function(){ hide("err"); if (retryFn) retryFn(); };
   $("tapBtn").onclick = function(){ hide("tap"); startCamera(); };
-  $("tapPhotoBtn").onclick = pickPhoto;
+  $("tapPhotoBtn").onclick = pickPhoto; $("tapGalleryBtn").onclick = pickGallery;
 
   // ปิดกล้องตอนสลับแอป / กลับมาแล้วเปิดใหม่ (รวมถึงกดย้อนกลับจากลิงก์)
   document.addEventListener("visibilitychange", function(){

@@ -46,10 +46,23 @@
   #hint{position:absolute;left:0;right:0;top:calc(44% + min(80vw,380px)/2.9 + 18px);
     text-align:center;font-size:15px;color:#e5e9ee;text-shadow:0 1px 3px rgba(0,0,0,.8);padding:0 24px}
 
-  header{position:absolute;left:0;right:0;top:0;padding:calc(var(--safe-t) + 12px) 18px 12px;
+  header{position:fixed;z-index:5;left:0;right:0;top:0;padding:calc(var(--safe-t) + 12px) 14px 12px 18px;
     display:flex;align-items:center;justify-content:space-between;gap:10px;
     background:linear-gradient(rgba(0,0,0,.55),rgba(0,0,0,0))}
-  header h1{margin:0;font-size:19px;font-weight:700;letter-spacing:.2px}
+  header h1{margin:0;font-size:19px;font-weight:700;letter-spacing:.2px;white-space:nowrap}
+  .hright{display:flex;align-items:center;gap:8px;min-width:0}
+  #status{min-width:0;overflow:hidden;text-overflow:ellipsis}
+  #shareBtn{height:36px;padding:0 12px;border-radius:999px;font-size:14px;gap:6px;flex:none;
+    background:rgba(255,255,255,.18)}
+  #shareBtn svg{width:18px;height:18px}
+  #share{background:var(--bg)}
+  .qr{background:#fff;border-radius:18px;padding:10px;width:min(62vw,240px);box-shadow:0 8px 26px rgba(0,0,0,.45)}
+  .qr img{display:block;width:100%;height:auto;image-rendering:pixelated}
+  #shareUrl{font-family:ui-monospace,Menlo,monospace;font-size:13px;color:#cbd5e1;word-break:break-all;max-width:360px;
+    -webkit-user-select:text;user-select:text}
+  .sharebtns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;max-width:380px}
+  .sharebtns .btn{height:48px;padding:0 16px}
+  .btn.line{background:#06c755;color:#fff}
   #status{font-size:13px;padding:5px 11px;border-radius:999px;background:rgba(255,255,255,.14);
     white-space:nowrap;display:flex;align-items:center;gap:6px}
   #status::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--muted)}
@@ -80,6 +93,7 @@
 
   /* หน้าจอเต็ม: กำลังเปิดลิงก์ / ผิดพลาด / แตะเพื่อเริ่ม */
   .cover{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding-top:calc(var(--safe-t) + 64px)!important;
     text-align:center;padding:24px;background:rgba(14,20,28,.94);gap:14px}
   .cover h2{margin:0;font-size:22px}
   .cover p{margin:0;color:var(--muted);font-size:15px;line-height:1.55;max-width:420px}
@@ -137,7 +151,10 @@
 
 <header>
   <h1>สแกนเข้าลิงก์</h1>
-  <div id="status">กำลังเตรียม…</div>
+  <div class="hright">
+    <div id="status">กำลังเตรียม…</div>
+    <button class="btn" id="shareBtn" aria-label="แชร์ลิงก์แอป"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>แชร์</button>
+  </div>
 </header>
 
 <div id="sheet" hidden>
@@ -210,6 +227,19 @@
     <button class="btn" id="guideCopy" hidden>คัดลอกลิงก์</button>
     <button class="btn primary" id="guideClose">เข้าใจแล้ว</button>
   </div>
+</div>
+
+<div class="cover" id="share" hidden>
+  <h2>แชร์แอปสแกน</h2>
+  <div class="qr"><img src="qr-link.png" alt="QR ลิงก์แอปสแกน" width="410" height="410"></div>
+  <p>ให้อีกเครื่อง<b>เปิดกล้องมือถือ</b>ส่อง QR นี้ ก็เข้าแอปได้เลย</p>
+  <div id="shareUrl"></div>
+  <div class="sharebtns">
+    <button class="btn line" id="shareLine">ส่งทาง LINE</button>
+    <button class="btn" id="shareNative" hidden>แชร์…</button>
+    <button class="btn" id="shareCopy">คัดลอกลิงก์</button>
+  </div>
+  <button class="btn" id="shareClose">ปิด</button>
 </div>
 
 <div id="toast" hidden></div>
@@ -557,6 +587,32 @@
   window.addEventListener("pageshow", function(e){
     if (e.persisted) { going = false; hide("going"); hide("sheet"); if (wantCam) startCamera(); else boot(); }
   });
+
+  // ---------- แชร์ลิงก์แอป ----------
+  var APP_URL = "https://starmark-warranty.github.io/Scan-Link/";
+  var SHARE_TEXT = "แอปสแกน Data Matrix / QR / Barcode เปิดลิงก์ทันที (iPhone / Android)";
+  function copyText(t, btn){
+    var done = function(){ btn.textContent = "คัดลอกแล้ว ✓"; setTimeout(function(){ btn.textContent = "คัดลอกลิงก์"; }, 2000); };
+    var fallback = function(){
+      var ta = document.createElement("textarea"); ta.value = t; ta.setAttribute("readonly", "");
+      ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy") ? done() : prompt("คัดลอกลิงก์นี้", t); } catch (e) { prompt("คัดลอกลิงก์นี้", t); }
+      ta.remove();
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, fallback);
+    else fallback();
+  }
+  $("shareUrl").textContent = APP_URL;
+  $("shareNative").hidden = !navigator.share;
+  $("shareBtn").onclick = function(){ show("share"); };
+  $("shareClose").onclick = function(){ hide("share"); };
+  $("shareCopy").onclick = function(){ copyText(APP_URL, this); };
+  $("shareLine").onclick = function(){
+    window.open("https://line.me/R/share?text=" + encodeURIComponent(SHARE_TEXT + "\n" + APP_URL), "_blank");
+  };
+  $("shareNative").onclick = function(){
+    navigator.share({ title: "สแกนเข้าลิงก์", text: SHARE_TEXT, url: APP_URL }).catch(function(){});
+  };
 
   // ---------- ติดตั้งเป็นแอป ----------
   var SHARE_SVG = "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3v12M8 7l4-4 4 4'/><path d='M5 11v9h14v-9'/></svg>";

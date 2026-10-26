@@ -145,10 +145,10 @@
   #lotBox{margin:0 0 12px}
   #lotName{font-size:25px;font-weight:800;font-family:ui-monospace,Menlo,monospace;word-break:break-all;line-height:1.2;cursor:copy}
   #lotPart{font-size:14px;color:var(--muted);margin:3px 0 12px;line-height:1.35}
-  .stepbtns{display:flex;gap:10px}
+  .stepbtns{display:flex;gap:8px}   /* 2026-10-26 09:37 + Site (3 ปุ่ม) */
   .step{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:92px;padding:8px 6px;
     border-radius:16px;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.24)}
-  .step b{font-size:23px;line-height:1.1} .step span{font-size:14px;color:var(--muted)}
+  .step b{font-size:21px;line-height:1.1} .step span{font-size:13.5px;color:var(--muted)}
   .step small{font-size:12.5px;color:#cbd5e1;text-align:center;line-height:1.3}
   .step:active{transform:scale(.98)} .step:disabled{cursor:default}
   .step.done{background:rgba(34,197,94,.2);border-color:var(--ok)} .step.done small{color:#86efac;font-weight:700}
@@ -195,6 +195,7 @@
     <div class="stepbtns">
       <button class="step" id="stepEdge"><b>Edge</b><span>ปิดขอบ</span><small></small></button>
       <button class="step" id="stepDrill"><b>Drill</b><span>เจาะ</span><small></small></button>
+      <button class="step" id="stepSite"><b>Site</b><span>ถึงไซต์</span><small></small></button>
     </div>
     <div id="lotFoot"><span><span id="byTxt"></span> <button class="link" id="byBtn">เปลี่ยนชื่อ</button></span><span id="lotData"></span></div>
   </div>
@@ -261,7 +262,7 @@
 <!-- 2026-10-26: เลือกโหมดก่อนสแกน (จำไว้ในเครื่อง) · วางหลังหน้า “แตะเพื่อเปิดกล้อง”/ผิดพลาด = อยู่บนหน้านั้น (เลือกโหมดก่อนเปิดกล้องได้) แต่อยู่ใต้หน้าติดตั้ง/แชร์ — 3D = เปิดลิงก์ · สถานะ = ยิงบาร์โค้ดชิ้นงาน → Edge / Drill -->
 <div id="modeBar" role="tablist" aria-label="โหมดสแกน">
   <button data-mode="3d" role="tab">🧊 ดู 3D</button>
-  <button data-mode="st" role="tab">🏭 สถานะ Edge / Drill</button>
+  <button data-mode="st" role="tab">🏭 สถานะ Edge / Drill / Site</button>
 </div>
 
 <div class="cover" id="guide" hidden>
@@ -677,7 +678,8 @@
   var DRIVE_CODE = "SNGAS1:eyJ1IjoiaHR0cHM6Ly9zY3JpcHQuZ29vZ2xlLmNvbS9tYWNyb3Mvcy9BS2Z5Y2J4eEI4WktGR0YycU5Ibkk2SzYxSXh3TWJWb28tV3JXQ2ZzRlhuaWxOYzlWc3BobFNFQjZHY2NBVkkxcXJzRmswY1ZXQS9leGVjIiwiayI6ImY5MzkyZjg5MzIwMjQzNzJhOTRjZmFhNTM2YjA0ZGNhOTM1YzFjYTcifQ==";
   var DRV = (function(){ try { var o = JSON.parse(decodeURIComponent(escape(atob(DRIVE_CODE.slice(7))))); return o && o.u && o.k ? o : null; } catch (e) { return null; } })();
   var LOT_DIR = "lots", INFO_F = "pinfo.csv", STEPS_F = "steps.json";
-  var STEP = {edge:{h:"Edge", th:"ปิดขอบ"}, drill:{h:"Drill", th:"เจาะ"}};
+  /* 2026-10-26 09:37 ผู้ใช้: “แสกนแล้วติ๊ก Site ด้วยครับ” → ตอบ “ทั้ง Lot (แบบ Edge/Drill)” = ปุ่มที่ 3 · steps.json คีย์ site */
+  var STEP = {edge:{h:"Edge", th:"ปิดขอบ", b:"stepEdge"}, drill:{h:"Drill", th:"เจาะ", b:"stepDrill"}, site:{h:"Site", th:"ถึงไซต์", b:"stepSite"}};
   var BY_KEY = "scanlink_by", BY_ASKED = "scanlink_by_asked", DEV_KEY = "scanlink_dev";
   var IDX_FV = 2;            // รูปแบบดัชนีที่จำในเครื่อง: 2 = Code Part + Barcode (เปลี่ยนเลข = สร้างใหม่ทุกเครื่อง)
   var IDX = {map:null, lots:null, nm:null, cab:null, u:0, at:"", rows:0, nLots:0, loading:null, checked:0, err:null, info:null};
@@ -850,11 +852,11 @@
       if (undo && !e[k]) return {entry:e};
       var at = nowIso(), rec = {at:at, by:myName(), bc:hit.bc, dev:devId()};
       if (undo) delete e[k]; else e[k] = rec;
-      if (e.edge || e.drill) { e.lot = hit.lot; cur.base.lots[K] = e; } else delete cur.base.lots[K];
+      if (e.edge || e.drill || e.site) { e.lot = hit.lot; cur.base.lots[K] = e; } else delete cur.base.lots[K];
       cur.base.hist.unshift({t: undo ? "ยกเลิก" : "ยิง", step:k, lot:hit.lot, at:at, by:rec.by, bc:hit.bc, nm:hit.nm || "", dev:rec.dev});
       cur.base.hist = cur.base.hist.slice(0, 2000);
       var old = Date.now() - 400 * 86400000;   // Lot ที่ยิงล่าสุดเกิน 400 วัน = เอาออก (ไฟล์ไม่โตไม่หยุด)
-      Object.keys(cur.base.lots).forEach(function(x){ var v = cur.base.lots[x], last = [v.edge, v.drill].filter(Boolean).map(function(s){ return Date.parse(s.at) || 0; }); if (last.length && Math.max.apply(null, last) < old) delete cur.base.lots[x]; });
+      Object.keys(cur.base.lots).forEach(function(x){ var v = cur.base.lots[x], last = [v.edge, v.drill, v.site].filter(Boolean).map(function(s){ return Date.parse(s.at) || 0; }); if (last.length && Math.max.apply(null, last) < old) delete cur.base.lots[x]; });
       cur.base.v = 1; cur.base.at = at; cur.base.by = rec.by;
       var c = await gzB64(JSON.stringify(cur.base)), w = null;
       try { w = await gas({a:"fsWrite", p:LOT_DIR, n:STEPS_F, c:c, ifU:cur.u}); }
@@ -867,12 +869,12 @@
 
   /* ── แผงผล: Lot + ปุ่ม Edge / Drill ── */
   function stepUi(){
-    ["edge", "drill"].forEach(function(k){
-      var b = $(k === "edge" ? "stepEdge" : "stepDrill"), sm = b.querySelector("small"), e = CUR && CUR.entry && CUR.entry[k];
+    Object.keys(STEP).forEach(function(k){
+      var b = $(STEP[k].b), sm = b.querySelector("small"), e = CUR && CUR.entry && CUR.entry[k];
       var busy = CUR && CUR.busy === k;
       b.classList.toggle("done", !!e); b.classList.toggle("busy", !!busy); b.disabled = !!(CUR && CUR.busy);
-      sm.textContent = busy ? "กำลังบันทึก…" : e ? "✓ เริ่มแล้ว " + hm(e.at) + (e.by ? " · " + e.by : "")
-        : CUR && CUR.entry === undefined ? "กำลังเช็ค…" : "แตะ = เริ่ม" + STEP[k].th;
+      sm.textContent = busy ? "กำลังบันทึก…" : e ? "✓ " + (k === "site" ? "ถึงแล้ว " : "เริ่มแล้ว ") + hm(e.at) + (e.by ? " · " + e.by : "")
+        : CUR && CUR.entry === undefined ? "กำลังเช็ค…" : "แตะ = " + (k === "site" ? "" : "เริ่ม") + STEP[k].th;
     });
   }
   function lotMsg(html){ var m = $("lotMsg"); m.hidden = !html; m.innerHTML = html || ""; }
@@ -925,6 +927,7 @@
   }
   $("stepEdge").onclick = function(){ onStep("edge"); };
   $("stepDrill").onclick = function(){ onStep("drill"); };
+  $("stepSite").onclick = function(){ onStep("site"); };
   $("byBtn").onclick = function(){ askName(); };
   $("lotName").onclick = function(){
     var t = $("lotName").textContent; if (!t) return;
@@ -940,7 +943,7 @@
   var MODE_KEY = "scanlink_mode";
   var MODE = lsGet(MODE_KEY) === "st" ? "st" : "3d";
   var onlyLink = false, seen = {t:"", at:0};
-  var HINT = {"3d":"เล็ง Data Matrix / QR ให้อยู่ในกรอบ — เปิดลิงก์ (ดู 3D)", st:"เล็งบาร์โค้ด Code Part บนสติกเกอร์ชิ้นงานให้อยู่ในกรอบ แล้วกด Edge / Drill"};
+  var HINT = {"3d":"เล็ง Data Matrix / QR ให้อยู่ในกรอบ — เปิดลิงก์ (ดู 3D)", st:"เล็งบาร์โค้ด Code Part บนสติกเกอร์ชิ้นงานให้อยู่ในกรอบ แล้วกด Edge / Drill / Site"};
   function setMode(m, first){
     MODE = m === "st" ? "st" : "3d"; lsSet(MODE_KEY, MODE);
     document.body.classList.toggle("mode-st", MODE === "st");
@@ -954,7 +957,7 @@
   function hint3d(t){
     CUR = null; $("lotBox").hidden = true; $("sheet").classList.remove("lot"); $("sheetKind").textContent = "ไม่ใช่ลิงก์";
     var hit = lookup(t);
-    lotMsg(hit ? "Code Part ของ Lot <b>" + esc(hit.lot) + "</b> — จะกด Edge / Drill ให้ <button class='link' id='toSt'>สลับเป็นโหมดสถานะ</button>" : "");
+    lotMsg(hit ? "Code Part ของ Lot <b>" + esc(hit.lot) + "</b> — จะกด Edge / Drill / Site ให้ <button class='link' id='toSt'>สลับเป็นโหมดสถานะ</button>" : "");
   }
   $("lotMsg").addEventListener("click", function(e){ if (e.target && e.target.id === "toSt") { var t = shownText; setMode("st"); shownText = t; $("sheetText").textContent = t; renderLot(t); show("sheet"); } });
 

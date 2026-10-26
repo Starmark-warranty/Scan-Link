@@ -2,7 +2,7 @@
   "id": "./",
   "name": "สแกนเข้าลิงก์",
   "short_name": "สแกนลิงก์",
-  "description": "สแกน Data Matrix / QR / Barcode 128 แล้วเปิดลิงก์ทันที",
+  "description": "สแกน Data Matrix / QR / Barcode 128 แล้วเปิดลิงก์ทันที · ยิงบาร์โค้ดชิ้นงาน = บันทึกเริ่ม Edge / Drill ของ Lot ผลิต",
   "lang": "th",
   "start_url": "./",
   "scope": "./",

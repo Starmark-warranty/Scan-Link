@@ -140,6 +140,23 @@
     background:var(--ok);color:#06210f;font-weight:700;padding:12px 18px;border-radius:14px;
     box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:90vw;text-align:center;z-index:9}
   .kbd{display:inline-block;padding:0 7px;border-radius:6px;background:rgba(255,255,255,.14);color:var(--fg);font-weight:700}
+  /* ───────── 2026-10-26: Lot ผลิต — ยิงบาร์โค้ดชิ้นงาน แล้วกด Edge / Drill (ส่งให้ StarStock) ───────── */
+  #sheet.lot #sheetText{font-size:14px;font-weight:600;margin:2px 0 6px;color:var(--muted)}
+  #lotBox{margin:0 0 12px}
+  #lotName{font-size:25px;font-weight:800;font-family:ui-monospace,Menlo,monospace;word-break:break-all;line-height:1.2;cursor:copy}
+  #lotPart{font-size:14px;color:var(--muted);margin:3px 0 12px;line-height:1.35}
+  .stepbtns{display:flex;gap:10px}
+  .step{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:92px;padding:8px 6px;
+    border-radius:16px;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.24)}
+  .step b{font-size:23px;line-height:1.1} .step span{font-size:14px;color:var(--muted)}
+  .step small{font-size:12.5px;color:#cbd5e1;text-align:center;line-height:1.3}
+  .step:active{transform:scale(.98)} .step:disabled{cursor:default}
+  .step.done{background:rgba(34,197,94,.2);border-color:var(--ok)} .step.done small{color:#86efac;font-weight:700}
+  .step.busy{opacity:.65}
+  #lotFoot{display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px;font-size:12.5px;color:var(--muted)}
+  #lotFoot .link{font-size:12.5px;padding:2px 4px}
+  #lotMsg{margin:-2px 0 12px;font-size:14px;line-height:1.45;color:var(--warn)}
+  #lotMsg small{color:var(--muted)} #lotMsg .link{font-size:14px;padding:0 4px;color:var(--fg)}
 </style>
 </head>
 <body>
@@ -158,8 +175,19 @@
 </header>
 
 <div id="sheet" hidden>
-  <div class="lab"><span id="sheetFmt">Code 128</span><span>ไม่ใช่ลิงก์</span></div>
+  <div class="lab"><span id="sheetFmt">Code 128</span><span id="sheetKind">ไม่ใช่ลิงก์</span></div>
   <div id="sheetText"></div>
+  <!-- 2026-10-26: บาร์โค้ดชิ้นงานของ Lot ผลิต → ปุ่ม Edge / Drill -->
+  <div id="lotBox" hidden>
+    <div id="lotName" title="แตะ = คัดลอกชื่อ Lot"></div>
+    <div id="lotPart"></div>
+    <div class="stepbtns">
+      <button class="step" id="stepEdge"><b>Edge</b><span>ปิดขอบ</span><small></small></button>
+      <button class="step" id="stepDrill"><b>Drill</b><span>เจาะ</span><small></small></button>
+    </div>
+    <div id="lotFoot"><span><span id="byTxt"></span> <button class="link" id="byBtn">เปลี่ยนชื่อ</button></span><span id="lotData"></span></div>
+  </div>
+  <div id="lotMsg" hidden></div>
   <div class="row">
     <button class="btn" id="copyBtn">คัดลอก</button>
     <button class="btn primary" id="closeSheet">สแกนต่อ</button>
@@ -429,6 +457,7 @@
 
   async function loop(my){
     while (scanning && my === token) {
+      if (hold) { await sleep(150); continue; }   // 2026-10-26: แผง Lot เปิดอยู่ = ไม่อ่านโค้ดใหม่ (กันชิ้นข้าง ๆ มาแทน) จนกว่าจะกด “สแกนต่อ”
       if (video.readyState >= 2 && video.videoWidth) {
         var t0 = performance.now();
         try {
@@ -446,6 +475,8 @@
   function handle(res){
     var ok = (res || []).filter(function(r){ return r.isValid && r.text; });
     if (!ok.length) return false;
+    /* 2026-10-26: ในภาพเดียวมีบาร์โค้ดชิ้นงานของ Lot ผลิต = ใช้ตัวนั้น (เดิม: เจอลิงก์ = เปิดลิงก์ก่อนเสมอ) */
+    for (var j = 0; j < ok.length; j++) if (!toUrl(ok[j].text) && lookup(ok[j].text)) { showText(ok[j]); return true; }
     for (var i = 0; i < ok.length; i++) {
       var u = toUrl(ok[i].text);
       if (u) { go(u); return true; }
@@ -469,10 +500,12 @@
   function showText(r){
     var t = String(r.text).trim();
     if (t === shownText && !$("sheet").hidden) return;
+    if (t === lastClosed.t && Date.now() - lastClosed.at < 2500) return;   // 2026-10-26: เพิ่งกด “สแกนต่อ” = ไม่เด้งโค้ดเดิมกลับมาทันที
     shownText = t; flash();
     $("sheetFmt").textContent = LABEL[r.format] || r.format || "โค้ด";
     $("sheetText").textContent = t;
     $("copyBtn").textContent = "คัดลอก";
+    renderLot(t);   // 2026-10-26: บาร์โค้ดชิ้นงาน → Lot + ปุ่ม Edge / Drill
     show("sheet");
   }
 
@@ -501,6 +534,7 @@
     }
   };
   $("closeSheet").onclick = function(){
+    lastClosed = {t:shownText, at:Date.now()}; hold = false; CUR = null;   // 2026-10-26
     hide("sheet"); shownText = "";
     if (!stream && !starting && !going) boot();      // ยังไม่มีกล้องสด → กลับไปหน้าเริ่ม
   };
@@ -585,8 +619,279 @@
     else if (wantCam && !going && $("err").hidden && $("tap").hidden) startCamera();
   });
   window.addEventListener("pageshow", function(e){
-    if (e.persisted) { going = false; hide("going"); hide("sheet"); if (wantCam) startCamera(); else boot(); }
+    if (e.persisted) { going = false; hide("going"); hide("sheet"); hold = false; CUR = null; if (wantCam) startCamera(); else boot(); }
   });
+
+  // ---------- Lot ผลิต: ยิงบาร์โค้ดชิ้นงาน → หา Lot → กด Edge / Drill (ส่งให้ StarStock) ----------
+  /* 2026-10-26 ผู้ใช้: “ปรับตัวนี้ เมื่อคนไปสแกนบาร์โค้ดแล้วเลือกสถานะ Edge ให้มันไปหาบาร์โค้ดที่สแกน (เลขบาร์โค้ด) แล้วเอาไปหา Lot
+       จากนั้นคนกด Edge ปั๊บ สถานะ Lot นั้นก็ขึ้น Edge คือติ๊กถูกหมดทุกช่อง”
+     เดิม: สแกนได้โค้ดที่ไม่ใช่ลิงก์ = แผงโชว์ข้อความ + ปุ่มคัดลอกเท่านั้น
+     ตอนนี้:
+       · เปิดแอป = โหลดรายการบาร์โค้ดของชิ้นงานจาก Google Drive (lots/pinfo.csv ของ StarSync — ช่อง bc1 = Barcode)
+         จำไว้ในเครื่อง (IndexedDB) โหลดใหม่เฉพาะตอนไฟล์บน Drive เปลี่ยน
+       · สแกนบาร์โค้ดที่อยู่ในรายการ = แผงบอก Lot + ชื่อชิ้น/ตู้ + ปุ่มใหญ่ [Edge ปิดขอบ] [Drill เจาะ] (หยุดสแกนจนกว่าจะกด “สแกนต่อ”)
+         · กดปุ่ม = บันทึกว่า Lot นี้เริ่มขั้นนั้นแล้ว → lots/steps.json → หน้า Lot ผลิต (แท็บ ✅ สถานะ Part) ติ๊กทุกชิ้นของ Lot
+         · กดซ้ำตอนเริ่มแล้ว = ถามว่าจะยกเลิกไหม (ยิงผิด Lot)
+         · ครั้งแรกถามชื่อผู้ยิง (เว้นว่างได้ · เปลี่ยนได้ที่ “เปลี่ยนชื่อ”)
+       · ภาพเดียวมีทั้งลิงก์และบาร์โค้ดที่อยู่ในรายการ = ใช้บาร์โค้ด (เดิมเปิดลิงก์ก่อนเสมอ) · ลิงก์อื่นเปิดเหมือนเดิม
+       · steps.json = { v, at, by, lots: { LOTID ตัวใหญ่: { lot, edge: {at, by, bc, dev}, drill: {…} } }, hist: [ล่าสุดก่อน ≤2000] }
+         เขียนแบบ “อ่าน → แก้ → เขียนถ้าไฟล์ยังไม่ถูกใครแก้” (ifU เหมือน lots/done.json ของ StarStock) — หลายเครื่องกดพร้อมกันไม่ทับกัน
+       · รหัสเชื่อมต่อ Drive = ตัวเดียวกับ StarStock (DRIVE_CODE ใน index.html ของ BI-Production-Stock-Cabinet)
+         เปลี่ยนกุญแจที่ Apps Script แล้วต้องแก้ทั้ง 2 ไฟล์ · repo นี้เป็น public เหมือน StarStock (ใครได้ลิงก์ก็อ่าน/เขียน Drive ได้ — ผู้ใช้เลือกแบบนี้ตั้งแต่ StarStock v1.20) */
+  var DRIVE_CODE = "SNGAS1:eyJ1IjoiaHR0cHM6Ly9zY3JpcHQuZ29vZ2xlLmNvbS9tYWNyb3Mvcy9BS2Z5Y2J4eEI4WktGR0YycU5Ibkk2SzYxSXh3TWJWb28tV3JXQ2ZzRlhuaWxOYzlWc3BobFNFQjZHY2NBVkkxcXJzRmswY1ZXQS9leGVjIiwiayI6ImY5MzkyZjg5MzIwMjQzNzJhOTRjZmFhNTM2YjA0ZGNhOTM1YzFjYTcifQ==";
+  var DRV = (function(){ try { var o = JSON.parse(decodeURIComponent(escape(atob(DRIVE_CODE.slice(7))))); return o && o.u && o.k ? o : null; } catch (e) { return null; } })();
+  var LOT_DIR = "lots", INFO_F = "pinfo.csv", STEPS_F = "steps.json";
+  var STEP = {edge:{h:"Edge", th:"ปิดขอบ"}, drill:{h:"Drill", th:"เจาะ"}};
+  var BY_KEY = "scanlink_by", BY_ASKED = "scanlink_by_asked", DEV_KEY = "scanlink_dev";
+  var IDX = {map:null, lots:null, nm:null, cab:null, u:0, at:"", rows:0, nLots:0, loading:null, checked:0, err:null, info:null};
+  var CUR = null;            // แผงที่เปิดอยู่: {t, hit, entry, busy}
+  var hold = false;          // เจอ Lot แล้ว = หยุดสแกนจนกว่าจะกด “สแกนต่อ”
+  var lastClosed = {t:"", at:0};
+
+  function lsGet(k){ try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v){ try { localStorage.setItem(k, v); } catch (e) {} }
+  function devId(){
+    var d = lsGet(DEV_KEY);
+    if (!d) { d = (IS_IOS ? "ios-" : IS_ANDROID ? "and-" : "web-") + Math.random().toString(36).slice(2, 8); lsSet(DEV_KEY, d); }
+    return d;
+  }
+  function myName(){ return (lsGet(BY_KEY) || "").trim(); }
+  function askName(){
+    var v = prompt("ชื่อผู้ยิง (ให้ StarStock รู้ว่าใครยิง — เว้นว่างได้)", myName());
+    if (v === null) return false;
+    lsSet(BY_KEY, String(v).trim().slice(0, 40)); lsSet(BY_ASKED, "1"); showBy(); return true;
+  }
+  function showBy(){ var n = myName(); $("byTxt").textContent = "ผู้ยิง: " + (n || "ไม่ระบุชื่อ"); }
+  function pad(n){ return (n < 10 ? "0" : "") + n; }
+  function nowIso(){ var d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + "T" + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds()); }
+  function hm(s){   // "2026-10-26T08:12:00" → "08:12" (วันนี้) / "25/10 08:12"
+    var m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/.exec(String(s || "")); if (!m) return String(s || "");
+    var d = new Date(), today = d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+    return (m[1] + "-" + m[2] + "-" + m[3] === today ? "" : m[3] + "/" + m[2] + " ") + m[4] + ":" + m[5];
+  }
+
+  /* ── Google Drive (Apps Script แบบเดียวกับ StarStock: POST {key, a, …} → JSON · ไฟล์ = base64 ของ gzip) ── */
+  async function gas(op, tryNo){
+    tryNo = tryNo || 0;
+    if (!DRV) throw new Error("ไม่มีรหัสเชื่อมต่อ Google Drive");
+    var ac = typeof AbortController !== "undefined" ? new AbortController() : null;
+    var tm = ac ? setTimeout(function(){ try { ac.abort(); } catch (e) {} }, 90000) : 0;
+    var o;
+    try {
+      var r = await fetch(DRV.u, {method:"POST", body:JSON.stringify(Object.assign({key:DRV.k}, op)), redirect:"follow", signal: ac ? ac.signal : undefined});
+      var t = await r.text();
+      try { o = JSON.parse(t); } catch (e) { throw new Error("Google Drive ตอบไม่ถูกต้อง (HTTP " + r.status + ")"); }
+    } catch (e) {
+      if (tryNo < 2 && (e.name === "TypeError" || e.name === "AbortError")) { await sleep(900 * (tryNo + 1)); return gas(op, tryNo + 1); }
+      throw e.name === "AbortError" ? new Error("Google Drive ไม่ตอบ (หมดเวลา)") : e.name === "TypeError" ? new Error("ต่อเน็ตไม่ได้") : e;
+    } finally { clearTimeout(tm); }
+    if (!o || !o.ok) { var er = new Error((o && o.error) || "Google Drive ผิดพลาด"); er.code = o && o.code; throw er; }
+    return o;
+  }
+  async function gzB64(text){
+    var s = new Blob([new TextEncoder().encode(text)]).stream().pipeThrough(new CompressionStream("gzip"));
+    var u = new Uint8Array(await new Response(s).arrayBuffer()), bin = "";
+    for (var i = 0; i < u.length; i += 0x8000) bin += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000));
+    return btoa(bin);
+  }
+  async function unB64(b64){
+    var bin = atob(b64), u = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+    var s = new Blob([u]).stream().pipeThrough(new DecompressionStream("gzip"));
+    return new TextDecoder().decode(await new Response(s).arrayBuffer());
+  }
+  async function readFile(p, n){   // → {u, text} · ไม่มีไฟล์ = null
+    var o = await gas({a:"fsRead", p:p, names:[n]}), f = o.files && o.files[0];
+    if (!f || f.missing) return null;
+    var c = f.c;
+    if (f.parts) {
+      var arr = [];
+      for (var i = 0; i < f.parts; i++) arr.push((await gas({a:"fsReadPart", p:p, n:n, i:i})).c);
+      c = arr.join("");
+    }
+    return {u:f.u, text: await unB64(c)};
+  }
+
+  /* ── ที่จำในเครื่อง (IndexedDB) ── */
+  var _db = null;
+  function idb(){
+    if (_db) return _db;
+    _db = new Promise(function(res){
+      try { var r = indexedDB.open("scanlink", 1);
+        r.onupgradeneeded = function(){ r.result.createObjectStore("kv"); };
+        r.onsuccess = function(){ res(r.result); }; r.onerror = r.onblocked = function(){ res(null); };
+      } catch (e) { res(null); }
+    });
+    return _db;
+  }
+  async function idbGet(k){ var d = await idb(); if (!d) return null; return new Promise(function(res){ try { var q = d.transaction("kv").objectStore("kv").get(k); q.onsuccess = function(){ res(q.result || null); }; q.onerror = function(){ res(null); }; } catch (e) { res(null); } }); }
+  async function idbPut(k, v){ var d = await idb(); if (!d) return; try { d.transaction("kv", "readwrite").objectStore("kv").put(v, k); } catch (e) {} }
+
+  /* ── อ่าน CSV (ช่องในเครื่องหมายคำพูดได้ · ^ = ค่าเดียวกับแถวบน · =ค่า = ค่าที่ขึ้นต้นด้วย ^/=) ── */
+  function csvLine(line){
+    if (line.indexOf('"') < 0) return line.split(",");
+    var out = [], f = "", q = false;
+    for (var i = 0; i < line.length; i++) {
+      var c = line[i];
+      if (q) { if (c === '"') { if (line[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; }
+      else if (c === '"') q = true; else if (c === ",") { out.push(f); f = ""; } else f += c;
+    }
+    out.push(f); return out;
+  }
+  function buildIndex(text){
+    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+    var lines = text.split(/\r?\n/), h = csvLine(lines[0] || "").map(function(x){ return x.trim(); });
+    var iL = h.indexOf("lot"), iN = h.indexOf("nm"), iC = h.indexOf("cab"), iB = h.indexOf("bc1");
+    if (iL < 0 || iB < 0) throw new Error("ไฟล์ " + INFO_F + " ไม่มีช่อง lot / bc1");
+    var bcs = [], li = [], nm = [], cab = [], lots = [], lotIx = {}, pv = {L:"", N:"", C:"", B:""};
+    var val = function(v, k){ v = v == null ? "" : v; if (v === "^") return pv[k]; if (v.charAt(0) === "=") v = v.slice(1); pv[k] = v; return v; };
+    for (var r = 1; r < lines.length; r++) {
+      var ln = lines[r]; if (!ln) continue;
+      while ((ln.split('"').length - 1) % 2 && r + 1 < lines.length) ln += "\n" + lines[++r];   // ค่าที่มีขึ้นบรรทัดใหม่
+      var a = csvLine(ln), L = val(a[iL], "L"), N = iN >= 0 ? val(a[iN], "N") : "", C = iC >= 0 ? val(a[iC], "C") : "", B = val(a[iB], "B");
+      var k = String(B || "").trim().toUpperCase();
+      if (!L || !k || k === "MANUAL") continue;
+      var ix = lotIx[L]; if (ix == null) { ix = lotIx[L] = lots.length; lots.push(L); }
+      bcs.push(k); li.push(ix); nm.push(N); cab.push(C);
+    }
+    return {bcs:bcs, li:li, nm:nm, cab:cab, lots:lots};
+  }
+  function useIndex(d){
+    var m = new Map();
+    for (var i = 0; i < d.bcs.length; i++) m.set(d.bcs[i], i);
+    IDX.map = m; IDX.data = d; IDX.rows = d.bcs.length; IDX.nLots = d.lots.length; IDX.u = d.u || 0; IDX.at = d.at || "";
+  }
+  /* โหลด/ตรวจรายการบาร์โค้ด: มีในเครื่องแล้ว = ใช้ทันที · ตรวจ Drive ว่าไฟล์เปลี่ยนไหม (ไม่บ่อยกว่าทุก 3 นาที เว้นแต่ force) */
+  function idxLoad(force){
+    if (IDX.loading) return IDX.loading;
+    if (!force && IDX.map && Date.now() - IDX.checked < 180000) return Promise.resolve(false);
+    IDX.loading = (async function(){
+      var ch = false;
+      try {
+        if (!IDX.map) { var sv = await idbGet("pinfo"); if (sv && sv.bcs) { useIndex(sv); ch = true; refreshSheet(); } }
+        var o = await gas({a:"fsList", p:LOT_DIR, since:0, inl:0});
+        var f = (o.files || []).filter(function(x){ return x.n === INFO_F && !x.d; })[0];
+        IDX.checked = Date.now();
+        if (!f) { IDX.err = new Error("ยังไม่มีไฟล์ " + LOT_DIR + "/" + INFO_F + " บน Drive (StarSync v1.16 ส่งทุก 5 นาที)"); return ch; }
+        if (f.u !== IDX.u || !IDX.map) {
+          var rf = await readFile(LOT_DIR, INFO_F); if (!rf) throw new Error("ไม่พบไฟล์ " + INFO_F);
+          var d = buildIndex(rf.text); d.u = rf.u; d.at = nowIso();
+          useIndex(d); idbPut("pinfo", d); ch = true;
+        }
+        IDX.err = null;
+      } catch (e) { console.warn("Scan-Link: โหลดรายการบาร์โค้ดไม่ได้", e); IDX.err = e; }
+      finally { IDX.loading = null; }
+      if (ch || IDX.err) refreshSheet();
+      return ch;
+    })();
+    return IDX.loading;
+  }
+  function norm(t){ return String(t || "").trim().toUpperCase(); }
+  function lookup(t){
+    if (!IDX.map) return null;
+    var k = norm(t), i = IDX.map.get(k);
+    if (i == null && /[^0-9A-Z]/.test(k)) i = IDX.map.get(k.replace(/[^0-9A-Z]/g, ""));   // *123* / ช่องว่าง / ขีด
+    if (i == null) return null;
+    var d = IDX.data;
+    return {bc:d.bcs[i], lot:d.lots[d.li[i]], nm:d.nm[i], cab:d.cab[i]};
+  }
+  function codeLike(t){ t = String(t || "").trim(); return t.length >= 6 && t.length <= 40 && !/\s/.test(t); }
+
+  /* ── สถานะ Edge / Drill ของ Lot (lots/steps.json) ── */
+  async function stepsRead(){
+    var f = await readFile(LOT_DIR, STEPS_F), base = {v:1, lots:{}, hist:[]};
+    if (f) {
+      try { base = JSON.parse(f.text); } catch (e) { var bx = new Error("lots/steps.json บน Drive อ่านไม่ออก — ไม่บันทึกทับ"); bx.keep = 1; throw bx; }
+      if (!base.lots || typeof base.lots !== "object") base.lots = {}; if (!Array.isArray(base.hist)) base.hist = [];
+    }
+    return {base:base, u: f ? f.u : 0};
+  }
+  async function stepSave(k, hit, undo){
+    for (var t = 0; t < 5; t++) {
+      var cur = await stepsRead(), K = norm(hit.lot), e = cur.base.lots[K] || {lot:hit.lot};
+      if (!undo && e[k]) return {already:true, entry:e};
+      if (undo && !e[k]) return {entry:e};
+      var at = nowIso(), rec = {at:at, by:myName(), bc:hit.bc, dev:devId()};
+      if (undo) delete e[k]; else e[k] = rec;
+      if (e.edge || e.drill) { e.lot = hit.lot; cur.base.lots[K] = e; } else delete cur.base.lots[K];
+      cur.base.hist.unshift({t: undo ? "ยกเลิก" : "ยิง", step:k, lot:hit.lot, at:at, by:rec.by, bc:hit.bc, nm:hit.nm || "", dev:rec.dev});
+      cur.base.hist = cur.base.hist.slice(0, 2000);
+      var old = Date.now() - 400 * 86400000;   // Lot ที่ยิงล่าสุดเกิน 400 วัน = เอาออก (ไฟล์ไม่โตไม่หยุด)
+      Object.keys(cur.base.lots).forEach(function(x){ var v = cur.base.lots[x], last = [v.edge, v.drill].filter(Boolean).map(function(s){ return Date.parse(s.at) || 0; }); if (last.length && Math.max.apply(null, last) < old) delete cur.base.lots[x]; });
+      cur.base.v = 1; cur.base.at = at; cur.base.by = rec.by;
+      var c = await gzB64(JSON.stringify(cur.base)), w = null;
+      try { w = await gas({a:"fsWrite", p:LOT_DIR, n:STEPS_F, c:c, ifU:cur.u}); }
+      catch (x) { if (x.code !== 409) throw x; }
+      if (w && w.files && w.files.length) return {ok:true, entry:e};
+      await sleep(400 + t * 500);   // มีคนบันทึกแทรก — อ่านใหม่แล้วลองอีกครั้ง
+    }
+    throw new Error("มีคนบันทึกพร้อมกันหลายครั้ง ลองใหม่อีกที");
+  }
+
+  /* ── แผงผล: Lot + ปุ่ม Edge / Drill ── */
+  function stepUi(){
+    ["edge", "drill"].forEach(function(k){
+      var b = $(k === "edge" ? "stepEdge" : "stepDrill"), sm = b.querySelector("small"), e = CUR && CUR.entry && CUR.entry[k];
+      var busy = CUR && CUR.busy === k;
+      b.classList.toggle("done", !!e); b.classList.toggle("busy", !!busy); b.disabled = !!(CUR && CUR.busy);
+      sm.textContent = busy ? "กำลังบันทึก…" : e ? "✓ เริ่มแล้ว " + hm(e.at) + (e.by ? " · " + e.by : "")
+        : CUR && CUR.entry === undefined ? "กำลังเช็ค…" : "แตะ = เริ่ม" + STEP[k].th;
+    });
+  }
+  function lotMsg(html){ var m = $("lotMsg"); m.hidden = !html; m.innerHTML = html || ""; }
+  function dataTxt(){ return IDX.map ? "ข้อมูล Lot " + IDX.nLots.toLocaleString("th-TH") + " Lot · " + IDX.rows.toLocaleString("th-TH") + " ชิ้น · โหลด " + hm(IDX.at) : ""; }
+  function renderLot(t){
+    var hit = lookup(t);
+    CUR = hit ? {t:t, hit:hit, entry:undefined, busy:null} : null;
+    $("lotBox").hidden = !hit; $("sheet").classList.toggle("lot", !!hit);
+    $("sheetKind").textContent = hit ? "Lot ผลิต" : "ไม่ใช่ลิงก์";
+    if (hit) {
+      hold = true;
+      $("lotName").textContent = hit.lot;
+      $("lotPart").textContent = [hit.nm, hit.cab].filter(Boolean).join(" · ");
+      $("lotData").textContent = dataTxt(); showBy(); lotMsg(""); stepUi();
+      var my = CUR;
+      stepsRead().then(function(r){ if (CUR !== my) return; my.entry = r.base.lots[norm(hit.lot)] || {}; stepUi(); })
+        .catch(function(e){ if (CUR !== my) return; my.entry = {}; stepUi(); lotMsg("เช็คสถานะไม่ได้ — " + esc(e.message)); });
+      return;
+    }
+    if (!codeLike(t) || !DRV) { lotMsg(""); return; }
+    if (!IDX.map && (IDX.loading || !IDX.err)) lotMsg("⏳ กำลังโหลดข้อมูล Lot ผลิต… (ครั้งแรกอาจนานสักครู่)");
+    else if (!IDX.map) lotMsg("โหลดข้อมูล Lot ผลิตไม่ได้ — " + esc(IDX.err.message) + " <button class='link' id='idxRetry'>ลองใหม่</button>");
+    else lotMsg("ไม่พบบาร์โค้ดนี้ใน Lot ผลิต<br><small>" + esc(dataTxt()) + (IDX.loading ? " · กำลังตรวจข้อมูลใหม่…" : "") + "</small>");
+  }
+  /* ข้อมูลเพิ่งโหลดเสร็จ ระหว่างแผงเปิดอยู่ = ดูบาร์โค้ดเดิมใหม่ */
+  function refreshSheet(){ if (!$("sheet").hidden && shownText && !CUR) renderLot(shownText); }
+  function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+
+  async function onStep(k){
+    if (!CUR || CUR.busy) return;
+    var my = CUR, hit = my.hit, e = my.entry && my.entry[k];
+    if (e && !confirm("ยกเลิก “" + STEP[k].h + " (" + STEP[k].th + ")” ของ Lot " + hit.lot + " ?\n(เริ่มไว้ " + hm(e.at) + (e.by ? " โดย " + e.by : "") + ")")) return;
+    if (!e && !lsGet(BY_ASKED)) askName();
+    my.busy = k; stepUi();
+    try {
+      var r = await stepSave(k, hit, !!e);
+      my.entry = r.entry || {};
+      if (r.already) toast(STEP[k].h + " ของ " + hit.lot + " มีคนยิงไว้แล้ว " + hm(r.entry[k].at) + (r.entry[k].by ? " โดย " + r.entry[k].by : ""));
+      else toast(e ? "ยกเลิก " + STEP[k].h + " · " + hit.lot + " แล้ว" : "✓ " + STEP[k].h + " · " + hit.lot + " — StarStock ติ๊กทั้ง Lot แล้ว");
+      if (navigator.vibrate) try { navigator.vibrate(60); } catch (x) {}
+    } catch (x) {
+      console.warn(x);
+      lotMsg("บันทึกไม่สำเร็จ — " + esc(x.message) + " · กดปุ่มอีกครั้ง");
+    } finally { my.busy = null; if (CUR === my) stepUi(); }
+  }
+  $("stepEdge").onclick = function(){ onStep("edge"); };
+  $("stepDrill").onclick = function(){ onStep("drill"); };
+  $("byBtn").onclick = function(){ askName(); };
+  $("lotName").onclick = function(){
+    var t = $("lotName").textContent; if (!t) return;
+    var done = function(){ toast("คัดลอก " + t + " แล้ว"); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, function(){});
+  };
+  $("lotMsg").addEventListener("click", function(e){ if (e.target && e.target.id === "idxRetry") { lotMsg("⏳ กำลังโหลดข้อมูล Lot ผลิต…"); idxLoad(true); } });
+  /* กลับมาที่แอป = ตรวจว่าข้อมูล Lot เปลี่ยนไหม (ไม่บ่อยกว่าทุก 3 นาที) */
+  document.addEventListener("visibilitychange", function(){ if (!document.hidden && DRV) idxLoad(false); });
 
   // ---------- แชร์ลิงก์แอป ----------
   var APP_URL = "https://starmark-warranty.github.io/Scan-Link/";
@@ -754,6 +1059,7 @@
     else { show("tap"); setStatus("แตะเพื่อเริ่ม", "warn"); }
   }
   boot();
+  if (DRV) idxLoad(true);   // 2026-10-26: โหลดรายการบาร์โค้ดของ Lot ผลิตไว้ก่อน (ใช้ของที่จำไว้ในเครื่องทันที)
 })();
 </script>
 </body>

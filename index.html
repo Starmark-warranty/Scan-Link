@@ -679,6 +679,7 @@
   var LOT_DIR = "lots", INFO_F = "pinfo.csv", STEPS_F = "steps.json";
   var STEP = {edge:{h:"Edge", th:"ปิดขอบ"}, drill:{h:"Drill", th:"เจาะ"}};
   var BY_KEY = "scanlink_by", BY_ASKED = "scanlink_by_asked", DEV_KEY = "scanlink_dev";
+  var IDX_FV = 2;            // รูปแบบดัชนีที่จำในเครื่อง: 2 = Code Part + Barcode (เปลี่ยนเลข = สร้างใหม่ทุกเครื่อง)
   var IDX = {map:null, lots:null, nm:null, cab:null, u:0, at:"", rows:0, nLots:0, loading:null, checked:0, err:null, info:null};
   var CUR = null;            // แผงที่เปิดอยู่: {t, hit, entry, busy}
   var hold = false;          // เจอ Lot แล้ว = หยุดสแกนจนกว่าจะกด “สแกนต่อ”
@@ -777,24 +778,24 @@
   function buildIndex(text){
     if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
     var lines = text.split(/\r?\n/), h = csvLine(lines[0] || "").map(function(x){ return x.trim(); });
-    var iL = h.indexOf("lot"), iN = h.indexOf("nm"), iC = h.indexOf("cab"), iB = h.indexOf("bc1");
-    if (iL < 0 || iB < 0) throw new Error("ไฟล์ " + INFO_F + " ไม่มีช่อง lot / bc1");
-    var bcs = [], li = [], nm = [], cab = [], lots = [], lotIx = {}, pv = {L:"", N:"", C:"", B:""};
+    /* 2026-10-26 09:20 ผู้ใช้: “Code Part ครับ ที่มีทุกสติกเกอร์ที่แสกน” → หาจาก Code Part (cpt · StarSync v1.17) ก่อน · Barcode (bc1) สำรอง */
+    var iL = h.indexOf("lot"), iN = h.indexOf("nm"), iC = h.indexOf("cab"), iB = h.indexOf("bc1"), iP = h.indexOf("cpt");
+    if (iL < 0 || (iB < 0 && iP < 0)) throw new Error("ไฟล์ " + INFO_F + " ไม่มีช่อง lot / cpt / bc1");
+    var bcs = [], li = [], nm = [], cab = [], lots = [], lotIx = {}, pv = {L:"", N:"", C:"", B:"", P:""};
     var val = function(v, k){ v = v == null ? "" : v; if (v === "^") return pv[k]; if (v.charAt(0) === "=") v = v.slice(1); pv[k] = v; return v; };
     for (var r = 1; r < lines.length; r++) {
       var ln = lines[r]; if (!ln) continue;
       while ((ln.split('"').length - 1) % 2 && r + 1 < lines.length) ln += "\n" + lines[++r];   // ค่าที่มีขึ้นบรรทัดใหม่
-      var a = csvLine(ln), L = val(a[iL], "L"), N = iN >= 0 ? val(a[iN], "N") : "", C = iC >= 0 ? val(a[iC], "C") : "", B = val(a[iB], "B");
-      var k = String(B || "").trim().toUpperCase();
-      if (!L || !k || k === "MANUAL") continue;
+      var a = csvLine(ln), L = val(a[iL], "L"), N = iN >= 0 ? val(a[iN], "N") : "", C = iC >= 0 ? val(a[iC], "C") : "", B = iB >= 0 ? val(a[iB], "B") : "", P = iP >= 0 ? val(a[iP], "P") : "";
+      if (!L) continue;
       var ix = lotIx[L]; if (ix == null) { ix = lotIx[L] = lots.length; lots.push(L); }
-      bcs.push(k); li.push(ix); nm.push(N); cab.push(C);
+      [P, B].forEach(function(v){ var k = String(v || "").trim().toUpperCase(); if (!k || k === "MANUAL") return; bcs.push(k); li.push(ix); nm.push(N); cab.push(C); });
     }
-    return {bcs:bcs, li:li, nm:nm, cab:cab, lots:lots};
+    return {bcs:bcs, li:li, nm:nm, cab:cab, lots:lots, cp: iP >= 0, fv: IDX_FV};
   }
   function useIndex(d){
     var m = new Map();
-    for (var i = 0; i < d.bcs.length; i++) m.set(d.bcs[i], i);
+    for (var i = 0; i < d.bcs.length; i++) { if (!m.has(d.bcs[i])) m.set(d.bcs[i], i); var z = d.bcs[i].replace(/[^0-9A-Z]/g, ""); if (z !== d.bcs[i] && !m.has(z)) m.set(z, i); }   // + แบบไม่มีขีด/ช่องว่าง
     IDX.map = m; IDX.data = d; IDX.rows = d.bcs.length; IDX.nLots = d.lots.length; IDX.u = d.u || 0; IDX.at = d.at || "";
   }
   /* โหลด/ตรวจรายการบาร์โค้ด: มีในเครื่องแล้ว = ใช้ทันที · ตรวจ Drive ว่าไฟล์เปลี่ยนไหม (ไม่บ่อยกว่าทุก 3 นาที เว้นแต่ force) */
@@ -804,12 +805,12 @@
     IDX.loading = (async function(){
       var ch = false;
       try {
-        if (!IDX.map) { var sv = await idbGet("pinfo"); if (sv && sv.bcs) { useIndex(sv); ch = true; refreshSheet(); } }
+        if (!IDX.map) { var sv = await idbGet("pinfo"); if (sv && sv.bcs && sv.fv === IDX_FV) { useIndex(sv); ch = true; refreshSheet(); } }   // รูปแบบเก่า (ก่อน Code Part) = สร้างใหม่
         var o = await gas({a:"fsList", p:LOT_DIR, since:0, inl:0});
         var f = (o.files || []).filter(function(x){ return x.n === INFO_F && !x.d; })[0];
         IDX.checked = Date.now();
         if (!f) { IDX.err = new Error("ยังไม่มีไฟล์ " + LOT_DIR + "/" + INFO_F + " บน Drive (StarSync v1.16 ส่งทุก 5 นาที)"); return ch; }
-        if (f.u !== IDX.u || !IDX.map) {
+        if (f.u !== IDX.u || !IDX.map || (IDX.data && IDX.data.fv !== IDX_FV)) {
           var rf = await readFile(LOT_DIR, INFO_F); if (!rf) throw new Error("ไม่พบไฟล์ " + INFO_F);
           var d = buildIndex(rf.text); d.u = rf.u; d.at = nowIso();
           useIndex(d); idbPut("pinfo", d); ch = true;
@@ -875,7 +876,7 @@
     });
   }
   function lotMsg(html){ var m = $("lotMsg"); m.hidden = !html; m.innerHTML = html || ""; }
-  function dataTxt(){ return IDX.map ? "ข้อมูล Lot " + IDX.nLots.toLocaleString("th-TH") + " Lot · " + IDX.rows.toLocaleString("th-TH") + " ชิ้น · โหลด " + hm(IDX.at) : ""; }
+  function dataTxt(){ return IDX.map ? "ข้อมูล Lot " + IDX.nLots.toLocaleString("th-TH") + " Lot · " + IDX.rows.toLocaleString("th-TH") + " รหัส · โหลด " + hm(IDX.at) : ""; }
   function renderLot(t){
     var hit = lookup(t);
     CUR = hit ? {t:t, hit:hit, entry:undefined, busy:null} : null;
@@ -894,7 +895,7 @@
     if (!codeLike(t) || !DRV) { lotMsg(""); return; }
     if (!IDX.map && (IDX.loading || !IDX.err)) lotMsg("⏳ กำลังโหลดข้อมูล Lot ผลิต… (ครั้งแรกอาจนานสักครู่)");
     else if (!IDX.map) lotMsg("โหลดข้อมูล Lot ผลิตไม่ได้ — " + esc(IDX.err.message) + " <button class='link' id='idxRetry'>ลองใหม่</button>");
-    else lotMsg("ไม่พบบาร์โค้ดนี้ใน Lot ผลิต<br><small>" + esc(dataTxt()) + (IDX.loading ? " · กำลังตรวจข้อมูลใหม่…" : "") + "</small>");
+    else lotMsg("ไม่พบ Code Part / บาร์โค้ดนี้ใน Lot ผลิต<br><small>" + esc(dataTxt()) + (IDX.data && !IDX.data.cp ? " · ข้อมูลยังไม่มี Code Part — รอ StarSync v1.17 ที่เครื่องออฟฟิศ" : "") + (IDX.loading ? " · กำลังตรวจข้อมูลใหม่…" : "") + "</small>");
   }
   /* ข้อมูลเพิ่งโหลดเสร็จ ระหว่างแผงเปิดอยู่ = ดูบาร์โค้ดเดิมใหม่ */
   function refreshSheet(){ if (!$("sheet").hidden && shownText && !CUR) renderLot(shownText); }
@@ -934,7 +935,7 @@
   var MODE_KEY = "scanlink_mode";
   var MODE = lsGet(MODE_KEY) === "st" ? "st" : "3d";
   var onlyLink = false, seen = {t:"", at:0};
-  var HINT = {"3d":"เล็ง Data Matrix / QR ให้อยู่ในกรอบ — เปิดลิงก์ (ดู 3D)", st:"เล็งบาร์โค้ดเส้นของชิ้นงานให้อยู่ในกรอบ แล้วกด Edge / Drill"};
+  var HINT = {"3d":"เล็ง Data Matrix / QR ให้อยู่ในกรอบ — เปิดลิงก์ (ดู 3D)", st:"เล็งบาร์โค้ด Code Part บนสติกเกอร์ชิ้นงานให้อยู่ในกรอบ แล้วกด Edge / Drill"};
   function setMode(m, first){
     MODE = m === "st" ? "st" : "3d"; lsSet(MODE_KEY, MODE);
     document.body.classList.toggle("mode-st", MODE === "st");
@@ -948,7 +949,7 @@
   function hint3d(t){
     CUR = null; $("lotBox").hidden = true; $("sheet").classList.remove("lot"); $("sheetKind").textContent = "ไม่ใช่ลิงก์";
     var hit = lookup(t);
-    lotMsg(hit ? "บาร์โค้ดชิ้นงานของ Lot <b>" + esc(hit.lot) + "</b> — จะกด Edge / Drill ให้ <button class='link' id='toSt'>สลับเป็นโหมดสถานะ</button>" : "");
+    lotMsg(hit ? "Code Part ของ Lot <b>" + esc(hit.lot) + "</b> — จะกด Edge / Drill ให้ <button class='link' id='toSt'>สลับเป็นโหมดสถานะ</button>" : "");
   }
   $("lotMsg").addEventListener("click", function(e){ if (e.target && e.target.id === "toSt") { var t = shownText; setMode("st"); shownText = t; $("sheetText").textContent = t; renderLot(t); show("sheet"); } });
 

@@ -146,6 +146,9 @@
   #lotName{font-size:25px;font-weight:800;font-family:ui-monospace,Menlo,monospace;word-break:break-all;line-height:1.2;cursor:copy}
   #lotPart{font-size:14px;color:var(--muted);margin:3px 0 12px;line-height:1.35}
   .stepbtns{display:flex;gap:8px}   /* 2026-10-26 09:37 + Site (3 ปุ่ม) */
+  /* 2026-10-26 16:35 + สี / เคลือบ (5 ปุ่ม) = ตาราง 3 คอลัมน์ 2 แถว: Edge · สี · เคลือบ / Drill · Site */
+  .stepbtns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+  .stepbtns .step{min-height:84px}
   .step{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:92px;padding:8px 6px;
     border-radius:16px;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.24)}
   .step b{font-size:21px;line-height:1.1} .step span{font-size:13.5px;color:var(--muted)}
@@ -205,6 +208,8 @@
     <div id="lotPart"></div>
     <div class="stepbtns">
       <button class="step" id="stepEdge"><b>Edge</b><span>ปิดขอบ</span><small></small></button>
+      <button class="step" id="stepPaint"><b>สี</b><span>รับเข้าทำสี</span><small></small></button>
+      <button class="step" id="stepCoat"><b>เคลือบ</b><span>รับเข้าเคลือบ</span><small></small></button>
       <button class="step" id="stepDrill"><b>Drill</b><span>เจาะ</span><small></small></button>
       <button class="step" id="stepSite"><b>Site</b><span>ถึงไซต์</span><small></small></button>
     </div>
@@ -274,7 +279,7 @@
 <!-- 2026-10-26: เลือกโหมดก่อนสแกน (จำไว้ในเครื่อง) · วางหลังหน้า “แตะเพื่อเปิดกล้อง”/ผิดพลาด = อยู่บนหน้านั้น (เลือกโหมดก่อนเปิดกล้องได้) แต่อยู่ใต้หน้าติดตั้ง/แชร์ — 3D = เปิดลิงก์ · สถานะ = ยิงบาร์โค้ดชิ้นงาน → Edge / Drill -->
 <div id="modeBar" role="tablist" aria-label="โหมดสแกน">
   <button data-mode="3d" role="tab">🧊 ดู 3D</button>
-  <button data-mode="st" role="tab">🏭 สถานะ Edge / Drill / Site</button>
+  <button data-mode="st" role="tab">🏭 สถานะ Edge · สี · Drill · Site</button>
 </div>
 
 <div class="cover" id="guide" hidden>
@@ -685,7 +690,7 @@
          · กดซ้ำตอนเริ่มแล้ว = ถามว่าจะยกเลิกไหม (ยิงผิด Lot)
          · ครั้งแรกถามชื่อผู้ยิง (เว้นว่างได้ · เปลี่ยนได้ที่ “เปลี่ยนชื่อ”)
        · ภาพเดียวมีทั้งลิงก์และบาร์โค้ดที่อยู่ในรายการ = ใช้บาร์โค้ด (เดิมเปิดลิงก์ก่อนเสมอ) · ลิงก์อื่นเปิดเหมือนเดิม
-       · steps.json = { v, at, by, lots: { LOTID ตัวใหญ่: { lot, edge: {at, by, bc, dev}, drill: {…} } }, hist: [ล่าสุดก่อน ≤2000] }
+       · steps.json = { v, at, by, lots: { LOTID ตัวใหญ่: { lot, edge: {at, by, bc, dev}, drill: {…}, site, paint (รับเข้าทำสี), coat (รับเข้าเคลือบ) } }, hist: [ล่าสุดก่อน ≤2000] }
          เขียนแบบ “อ่าน → แก้ → เขียนถ้าไฟล์ยังไม่ถูกใครแก้” (ifU เหมือน lots/done.json ของ StarStock) — หลายเครื่องกดพร้อมกันไม่ทับกัน
        · รหัสเชื่อมต่อ Drive = ตัวเดียวกับ StarStock (DRIVE_CODE ใน index.html ของ BI-Production-Stock-Cabinet)
          เปลี่ยนกุญแจที่ Apps Script แล้วต้องแก้ทั้ง 2 ไฟล์ · repo นี้เป็น public เหมือน StarStock (ใครได้ลิงก์ก็อ่าน/เขียน Drive ได้ — ผู้ใช้เลือกแบบนี้ตั้งแต่ StarStock v1.20) */
@@ -693,7 +698,11 @@
   var DRV = (function(){ try { var o = JSON.parse(decodeURIComponent(escape(atob(DRIVE_CODE.slice(7))))); return o && o.u && o.k ? o : null; } catch (e) { return null; } })();
   var LOT_DIR = "lots", INFO_F = "pinfo.csv", STEPS_F = "steps.json";
   /* 2026-10-26 09:37 ผู้ใช้: “แสกนแล้วติ๊ก Site ด้วยครับ” → ตอบ “ทั้ง Lot (แบบ Edge/Drill)” = ปุ่มที่ 3 · steps.json คีย์ site */
-  var STEP = {edge:{h:"Edge", th:"ปิดขอบ", b:"stepEdge"}, drill:{h:"Drill", th:"เจาะ", b:"stepDrill"}, site:{h:"Site", th:"ถึงไซต์", b:"stepSite"}};
+  /* 2026-10-26 15:36–16:35 ผู้ใช้: “เพิ่มช่องเพื่อสแกนรับเข้างานทำสี หรือรับเข้างานเคลือบ … State อยู่หลังปิดขอบ ก่อน Drill”
+     → ปุ่ม สี (คีย์ paint) · เคลือบ (คีย์ coat) ทั้ง Lot แบบ Edge/Drill · StarStock lots 1.43 ติ๊กชิ้นตามชนิดของ FrontStyle (ชิ้นสีจาก paint · ชิ้นเคลือบจาก coat)
+     ลำดับใน STEP = ลำดับปุ่ม/ลำดับในข้อความ: Edge → สี → เคลือบ → Drill → Site */
+  var STEP = {edge:{h:"Edge", th:"ปิดขอบ", b:"stepEdge"}, paint:{h:"สี", th:"รับเข้าทำสี", b:"stepPaint", rx:1}, coat:{h:"เคลือบ", th:"รับเข้าเคลือบ", b:"stepCoat", rx:1},
+              drill:{h:"Drill", th:"เจาะ", b:"stepDrill"}, site:{h:"Site", th:"ถึงไซต์", b:"stepSite"}};
   var BY_KEY = "scanlink_by", BY_ASKED = "scanlink_by_asked", DEV_KEY = "scanlink_dev";
   var IDX_FV = 3;            // รูปแบบดัชนีที่จำในเครื่อง: 2 = Code Part + Barcode · 3 = + Proj Name ราย Lot (เปลี่ยนเลข = สร้างใหม่ทุกเครื่อง)
   var IDX = {map:null, lots:null, nm:null, cab:null, u:0, at:"", rows:0, nLots:0, loading:null, checked:0, err:null, info:null};
@@ -872,10 +881,10 @@
         n++; cur.base.hist.unshift({t: want[k] ? "ยิง" : "ยกเลิก", step:k, lot:hit.lot, at:at, by:rec.by, bc:hit.bc, nm:hit.nm || "", dev:rec.dev});
       });
       if (!n) return {entry:e};
-      if (e.edge || e.drill || e.site) { e.lot = hit.lot; cur.base.lots[K] = e; } else delete cur.base.lots[K];
+      if (Object.keys(STEP).some(function(k){ return e[k]; })) { e.lot = hit.lot; cur.base.lots[K] = e; } else delete cur.base.lots[K];   // + paint / coat
       cur.base.hist = cur.base.hist.slice(0, 2000);
       var old = Date.now() - 400 * 86400000;   // Lot ที่ยิงล่าสุดเกิน 400 วัน = เอาออก (ไฟล์ไม่โตไม่หยุด)
-      Object.keys(cur.base.lots).forEach(function(x){ var v = cur.base.lots[x], last = [v.edge, v.drill, v.site].filter(Boolean).map(function(s){ return Date.parse(s.at) || 0; }); if (last.length && Math.max.apply(null, last) < old) delete cur.base.lots[x]; });
+      Object.keys(cur.base.lots).forEach(function(x){ var v = cur.base.lots[x], last = Object.keys(STEP).map(function(k){ return v[k]; }).filter(Boolean).map(function(s){ return Date.parse(s.at) || 0; }); if (last.length && Math.max.apply(null, last) < old) delete cur.base.lots[x]; });
       cur.base.v = 1; cur.base.at = at; cur.base.by = rec.by;
       var c = await gzB64(JSON.stringify(cur.base)), w = null;
       try { w = await gas({a:"fsWrite", p:LOT_DIR, n:STEPS_F, c:c, ifU:cur.u}); }
@@ -897,7 +906,7 @@
       b.classList.toggle("done", w); b.classList.toggle("pend", pend); b.classList.toggle("off", pend && !w); b.classList.toggle("busy", busy);
       b.disabled = busy || ld;
       sm.textContent = ld ? "กำลังเช็ค…" : pend ? (w ? "✓ จะติ๊ก — กดบันทึก" : "✕ จะยกเลิก — กดบันทึก")
-        : e ? "✓ " + (k === "site" ? "ถึงแล้ว " : "เริ่มแล้ว ") + hm(e.at) + (e.by ? " · " + e.by : "") : "แตะ = ติ๊ก";
+        : e ? "✓ " + (k === "site" ? "ถึงแล้ว " : STEP[k].rx ? "รับเข้าแล้ว " : "เริ่มแล้ว ") + hm(e.at) + (e.by ? " · " + e.by : "") : "แตะ = ติ๊ก";
     });
     var n = pendOf().length, sb = $("saveBtn");
     sb.disabled = !n || busy; sb.textContent = busy ? "กำลังบันทึก…" : n ? "บันทึก (" + n + ")" : "บันทึก";
@@ -967,7 +976,7 @@
       var r = await stepSave(k, hit, !!e);
       my.entry = r.entry || {};
       if (r.already) toast(STEP[k].h + " ของ " + hit.lot + " มีคนยิงไว้แล้ว " + hm(r.entry[k].at) + (r.entry[k].by ? " โดย " + r.entry[k].by : ""));
-      else toast(e ? "ยกเลิก " + STEP[k].h + " · " + hit.lot + " แล้ว" : "✓ " + STEP[k].h + " · " + hit.lot + " — StarStock ติ๊กทั้ง Lot แล้ว");
+      else toast(e ? "ยกเลิก " + STEP[k].h + " · " + hit.lot + " แล้ว" : "✓ " + STEP[k].h + " · " + hit.lot + (STEP[k].rx ? " — StarStock ติ๊กชิ้นงาน" + STEP[k].h + "ของ Lot นี้แล้ว" : " — StarStock ติ๊กทั้ง Lot แล้ว"));   // 2026-10-26 สี/เคลือบ = เฉพาะชิ้นชนิดนั้น
       if (navigator.vibrate) try { navigator.vibrate(60); } catch (x) {}
     } catch (x) {
       console.warn(x);
@@ -975,6 +984,8 @@
     } finally { my.busy = null; if (CUR === my) stepUi(); }
   }
   $("stepEdge").onclick = function(){ onStep("edge"); };
+  $("stepPaint").onclick = function(){ onStep("paint"); };   // 2026-10-26 16:35
+  $("stepCoat").onclick = function(){ onStep("coat"); };
   $("stepDrill").onclick = function(){ onStep("drill"); };
   $("stepSite").onclick = function(){ onStep("site"); };
   $("saveBtn").onclick = function(){ onSave(); };
@@ -993,7 +1004,7 @@
   var MODE_KEY = "scanlink_mode";
   var MODE = lsGet(MODE_KEY) === "st" ? "st" : "3d";
   var onlyLink = false, seen = {t:"", at:0};
-  var HINT = {"3d":"เล็ง Data Matrix / QR ให้อยู่ในกรอบ — เปิดลิงก์ (ดู 3D)", st:"เล็งบาร์โค้ด Code Part บนสติกเกอร์ชิ้นงานให้อยู่ในกรอบ แล้วกด Edge / Drill / Site"};
+  var HINT = {"3d":"เล็ง Data Matrix / QR ให้อยู่ในกรอบ — เปิดลิงก์ (ดู 3D)", st:"เล็งบาร์โค้ด Code Part บนสติกเกอร์ชิ้นงานให้อยู่ในกรอบ แล้วกด Edge / สี / เคลือบ / Drill / Site"};
   function setMode(m, first){
     MODE = m === "st" ? "st" : "3d"; lsSet(MODE_KEY, MODE);
     document.body.classList.toggle("mode-st", MODE === "st");
@@ -1007,7 +1018,7 @@
   function hint3d(t){
     CUR = null; $("lotBox").hidden = true; $("sheet").classList.remove("lot"); $("sheetKind").textContent = "ไม่ใช่ลิงก์";
     var hit = lookup(t);
-    lotMsg(hit ? "Code Part ของ Lot <b>" + esc(hit.lot) + "</b> — จะกด Edge / Drill / Site ให้ <button class='link' id='toSt'>สลับเป็นโหมดสถานะ</button>" : "");
+    lotMsg(hit ? "Code Part ของ Lot <b>" + esc(hit.lot) + "</b> — จะกด Edge / สี / เคลือบ / Drill / Site ให้ <button class='link' id='toSt'>สลับเป็นโหมดสถานะ</button>" : "");
   }
   $("lotMsg").addEventListener("click", function(e){ if (e.target && e.target.id === "toSt") { var t = shownText; setMode("st"); shownText = t; $("sheetText").textContent = t; renderLot(t); show("sheet"); } });
 

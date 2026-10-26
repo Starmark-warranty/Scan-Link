@@ -157,6 +157,16 @@
   #lotFoot .link{font-size:12.5px;padding:2px 4px}
   #lotMsg{margin:-2px 0 12px;font-size:14px;line-height:1.45;color:var(--warn)}
   #lotMsg small{color:var(--muted)} #lotMsg .link{font-size:14px;padding:0 4px;color:var(--fg)}
+  /* ───────── 2026-10-26 (ผู้ใช้ 08:58 เลือก “3D / สถานะ”): เลือกโหมดก่อนสแกน ───────── */
+  #modeBar{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--safe-t) + 62px);display:flex;gap:4px;padding:4px;
+    border-radius:999px;background:rgba(0,0,0,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);max-width:calc(100vw - 24px)}
+  #modeBar button{height:40px;padding:0 16px;border-radius:999px;background:transparent;color:#e5e9ee;font-size:15px;font-weight:700;white-space:nowrap}
+  #modeBar button.on{background:#fff;color:#0e141c}
+  #modeBar button.on[data-mode="st"]{background:var(--ok);color:#06210f}
+  body.mode-st #box{width:min(88vw,430px);aspect-ratio:2.4/1}
+  body.mode-st #hint{top:calc(44% + min(88vw,430px)/4.8 + 18px)}
+  #toast{top:calc(var(--safe-t) + 116px)}
+  #tap,#err{padding-top:calc(var(--safe-t) + 120px)!important}   /* เว้นที่ให้แถบเลือกโหมด */
 </style>
 </head>
 <body>
@@ -173,6 +183,7 @@
     <button class="btn" id="shareBtn" aria-label="แชร์ลิงก์แอป"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>แชร์</button>
   </div>
 </header>
+
 
 <div id="sheet" hidden>
   <div class="lab"><span id="sheetFmt">Code 128</span><span id="sheetKind">ไม่ใช่ลิงก์</span></div>
@@ -247,6 +258,12 @@
   </div>
 </div>
 
+<!-- 2026-10-26: เลือกโหมดก่อนสแกน (จำไว้ในเครื่อง) · วางหลังหน้า “แตะเพื่อเปิดกล้อง”/ผิดพลาด = อยู่บนหน้านั้น (เลือกโหมดก่อนเปิดกล้องได้) แต่อยู่ใต้หน้าติดตั้ง/แชร์ — 3D = เปิดลิงก์ · สถานะ = ยิงบาร์โค้ดชิ้นงาน → Edge / Drill -->
+<div id="modeBar" role="tablist" aria-label="โหมดสแกน">
+  <button data-mode="3d" role="tab">🧊 ดู 3D</button>
+  <button data-mode="st" role="tab">🏭 สถานะ Edge / Drill</button>
+</div>
+
 <div class="cover" id="guide" hidden>
   <h2 id="guideTitle">ติดตั้งเป็นแอป</h2>
   <ol class="steps" id="guideSteps"></ol>
@@ -280,6 +297,10 @@
   var LABEL = {DataMatrix:"Data Matrix",QRCode:"QR Code",Code128:"Code 128"};
   var LIVE_OPTS = {formats:FORMATS, tryHarder:true, tryRotate:true, tryInvert:false, tryDownscale:true, maxNumberOfSymbols:4};
   var PHOTO_OPTS = {formats:FORMATS, tryHarder:true, tryRotate:true, tryInvert:true, tryDownscale:true, maxNumberOfSymbols:8};
+  /* 2026-10-26 โหมดสถานะ: อ่านบาร์โค้ดเส้นหลายแบบ (ยังไม่รู้ว่าป้ายชิ้นงานใช้แบบไหน) · Data Matrix / QR ที่ไม่ใช่ลิงก์ก็ใช้ได้ */
+  var FORMATS_ST = ["Code128","Code39","Code93","ITF","EAN13","Codabar","DataMatrix","QRCode"];
+  var LIVE_OPTS_ST = Object.assign({}, LIVE_OPTS, {formats:FORMATS_ST});
+  var PHOTO_OPTS_ST = Object.assign({}, PHOTO_OPTS, {formats:FORMATS_ST});
 
   var $ = function(id){ return document.getElementById(id); };
   var video = $("video"), box = $("box");
@@ -461,9 +482,9 @@
       if (video.readyState >= 2 && video.videoWidth) {
         var t0 = performance.now();
         try {
-          var res = await ZXingWASM.readBarcodes(grabFrame(), LIVE_OPTS);
+          var res = await ZXingWASM.readBarcodes(grabFrame(), MODE === "st" ? LIVE_OPTS_ST : LIVE_OPTS);
           if (my !== token) return;
-          handle(res);
+          handle(res, true);
         } catch (e) { console.warn(e); }
         await sleep(Math.max(40, 140 - (performance.now() - t0)));
       } else {
@@ -472,11 +493,24 @@
     }
   }
 
-  function handle(res){
+  function handle(res, live){
     var ok = (res || []).filter(function(r){ return r.isValid && r.text; });
     if (!ok.length) return false;
-    /* 2026-10-26: ในภาพเดียวมีบาร์โค้ดชิ้นงานของ Lot ผลิต = ใช้ตัวนั้น (เดิม: เจอลิงก์ = เปิดลิงก์ก่อนเสมอ) */
-    for (var j = 0; j < ok.length; j++) if (!toUrl(ok[j].text) && lookup(ok[j].text)) { showText(ok[j]); return true; }
+    /* 2026-10-26 (ผู้ใช้ 08:58 เลือก “3D / สถานะ”): เดิม (รุ่นเช้า) แอปเดาเอง = บาร์โค้ดชิ้นงานชนะลิงก์ → คนจะดู 3D ได้แผง Edge/Drill แทน
+       ตอนนี้ แยกตามโหมดที่เลือก · โหมดสถานะ: ไม่เปิดลิงก์เลย ใช้แต่โค้ดที่ไม่ใช่ลิงก์ · โหมด 3D: แบบเดิมก่อนมี Edge/Drill */
+    if (MODE === "st") {
+      onlyLink = false;
+      var codes = ok.filter(function(r){ return !toUrl(r.text); });
+      if (!codes.length) { onlyLink = true; return false; }               // เห็นแต่ Data Matrix ลิงก์ (3D) = ไม่เปิด อ่านต่อ
+      for (var j = 0; j < codes.length; j++) if (lookup(codes[j].text)) { showText(codes[j], live); return true; }
+      /* ไม่อยู่ในรายการ: สแกนสดต้องอ่านได้ค่าเดิม 2 ครั้งติดกันก่อน (กันอ่านเพี้ยนแล้วเด้ง “ไม่พบ”) · ข้อมูลยังโหลดไม่เสร็จ = รอ */
+      if (live) {
+        var t0 = String(codes[0].text).trim(), now = Date.now();
+        if (!IDX.map && IDX.loading) return false;
+        if (seen.t !== t0 || now - seen.at > 1500) { seen = {t:t0, at:now}; return false; }
+      }
+      showText(codes[0], live); return true;
+    }
     for (var i = 0; i < ok.length; i++) {
       var u = toUrl(ok[i].text);
       if (u) { go(u); return true; }
@@ -497,15 +531,16 @@
     setTimeout(function(){ location.href = url; }, 150);
   }
 
-  function showText(r){
+  function showText(r, live){
     var t = String(r.text).trim();
     if (t === shownText && !$("sheet").hidden) return;
-    if (t === lastClosed.t && Date.now() - lastClosed.at < 2500) return;   // 2026-10-26: เพิ่งกด “สแกนต่อ” = ไม่เด้งโค้ดเดิมกลับมาทันที
+    if (live && t === lastClosed.t && Date.now() - lastClosed.at < 2500) return;   // 2026-10-26: เพิ่งกด “สแกนต่อ” = กล้องสดไม่เด้งโค้ดเดิมกลับมาทันที (ถ่ายรูป = ตั้งใจ ไม่กัน)
     shownText = t; flash();
     $("sheetFmt").textContent = LABEL[r.format] || r.format || "โค้ด";
     $("sheetText").textContent = t;
     $("copyBtn").textContent = "คัดลอก";
-    renderLot(t);   // 2026-10-26: บาร์โค้ดชิ้นงาน → Lot + ปุ่ม Edge / Drill
+    if (MODE === "st") renderLot(t);   // 2026-10-26: บาร์โค้ดชิ้นงาน → Lot + ปุ่ม Edge / Drill
+    else hint3d(t);                    // โหมด 3D: บาร์โค้ดชิ้นงาน = บอกว่าสลับโหมดได้
     show("sheet");
   }
 
@@ -556,7 +591,7 @@
       var side = Math.max(img.width, img.height);
       if (side <= last) break;                      // รูปเล็กกว่าขนาดนี้แล้ว ไม่ต้องอ่านซ้ำ
       last = side;
-      var res = (await ZXingWASM.readBarcodes(img, PHOTO_OPTS) || []).filter(function(r){ return r.isValid && r.text; });
+      var res = (await ZXingWASM.readBarcodes(img, MODE === "st" ? PHOTO_OPTS_ST : PHOTO_OPTS) || []).filter(function(r){ return r.isValid && r.text; });
       if (res.some(function(r){ return toUrl(r.text); })) return res;
       if (res.length > best.length) best = res;
     }
@@ -573,7 +608,8 @@
     try {
       await loadLib();
       found = handle(await decodeFile(f));
-      if (!found) alert(fromGallery
+      if (!found && MODE === "st" && onlyLink) alert("โหมดสถานะ: ในรูปมีแต่ Data Matrix / QR ที่เป็นลิงก์ (3D)\nถ่ายให้เห็นบาร์โค้ดเส้นของชิ้นงาน หรือสลับเป็นโหมด 🧊 ดู 3D");
+      else if (!found) alert(fromGallery
         ? "ไม่พบโค้ดในรูปนี้\nเลือกรูปที่เห็นโค้ดชัด ๆ ไม่เบลอ (ซูมเข้าใกล้โค้ดได้ยิ่งดี)"
         : "ไม่พบโค้ดในรูป\nลองถ่ายใหม่ให้ใกล้ขึ้นและไม่เบลอ");
     } catch (e) {
@@ -891,7 +927,30 @@
   };
   $("lotMsg").addEventListener("click", function(e){ if (e.target && e.target.id === "idxRetry") { lotMsg("⏳ กำลังโหลดข้อมูล Lot ผลิต…"); idxLoad(true); } });
   /* กลับมาที่แอป = ตรวจว่าข้อมูล Lot เปลี่ยนไหม (ไม่บ่อยกว่าทุก 3 นาที) */
-  document.addEventListener("visibilitychange", function(){ if (!document.hidden && DRV) idxLoad(false); });
+  document.addEventListener("visibilitychange", function(){ if (!document.hidden && DRV && MODE === "st") idxLoad(false); });
+
+  /* ── โหมด (ผู้ใช้ 26/10 08:58: “ตัวสแกนต้องให้เลือกก่อนหรือเปล่าว่าจะดู 3D หรือสแกนบาร์เพื่อสถานะ Edge / Drill” → เลือก “3D / สถานะ”) ──
+     จำไว้ในเครื่อง (มือถือแต่ละเครื่องมักประจำจุดเดียว) · ค่าเริ่มต้น = 3D (เหมือนแอปเดิม) · โหมดสถานะ = กรอบเล็งกว้าง (บาร์โค้ดเส้น) */
+  var MODE_KEY = "scanlink_mode";
+  var MODE = lsGet(MODE_KEY) === "st" ? "st" : "3d";
+  var onlyLink = false, seen = {t:"", at:0};
+  var HINT = {"3d":"เล็ง Data Matrix / QR ให้อยู่ในกรอบ — เปิดลิงก์ (ดู 3D)", st:"เล็งบาร์โค้ดเส้นของชิ้นงานให้อยู่ในกรอบ แล้วกด Edge / Drill"};
+  function setMode(m, first){
+    MODE = m === "st" ? "st" : "3d"; lsSet(MODE_KEY, MODE);
+    document.body.classList.toggle("mode-st", MODE === "st");
+    Array.prototype.forEach.call(document.querySelectorAll("#modeBar [data-mode]"), function(b){ var on = b.dataset.mode === MODE; b.classList.toggle("on", on); b.setAttribute("aria-selected", on ? "true" : "false"); });
+    $("hint").textContent = HINT[MODE];
+    if (!first) { hide("sheet"); shownText = ""; hold = false; CUR = null; seen = {t:"", at:0}; lastClosed = {t:"", at:0}; }
+    if (MODE === "st" && DRV) idxLoad(!!first);
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("#modeBar [data-mode]"), function(b){ b.onclick = function(){ if (b.dataset.mode !== MODE) setMode(b.dataset.mode); }; });
+  /* โหมด 3D แต่สแกนได้บาร์โค้ดชิ้นงาน = บอก Lot + ปุ่มสลับไปโหมดสถานะ (ไม่บันทึกอะไร) */
+  function hint3d(t){
+    CUR = null; $("lotBox").hidden = true; $("sheet").classList.remove("lot"); $("sheetKind").textContent = "ไม่ใช่ลิงก์";
+    var hit = lookup(t);
+    lotMsg(hit ? "บาร์โค้ดชิ้นงานของ Lot <b>" + esc(hit.lot) + "</b> — จะกด Edge / Drill ให้ <button class='link' id='toSt'>สลับเป็นโหมดสถานะ</button>" : "");
+  }
+  $("lotMsg").addEventListener("click", function(e){ if (e.target && e.target.id === "toSt") { var t = shownText; setMode("st"); shownText = t; $("sheetText").textContent = t; renderLot(t); show("sheet"); } });
 
   // ---------- แชร์ลิงก์แอป ----------
   var APP_URL = "https://starmark-warranty.github.io/Scan-Link/";
@@ -1059,7 +1118,7 @@
     else { show("tap"); setStatus("แตะเพื่อเริ่ม", "warn"); }
   }
   boot();
-  if (DRV) idxLoad(true);   // 2026-10-26: โหลดรายการบาร์โค้ดของ Lot ผลิตไว้ก่อน (ใช้ของที่จำไว้ในเครื่องทันที)
+  setMode(MODE, true);      // 2026-10-26: โหมดที่จำไว้ · โหมดสถานะ = โหลดรายการบาร์โค้ดของ Lot ผลิต (ใช้ของที่จำไว้ในเครื่องทันที)
 })();
 </script>
 </body>

@@ -226,6 +226,14 @@
   #sheet.st.pack #closeSheet{background:rgba(255,255,255,.16);color:var(--fg)}
   #siteBtn:disabled{opacity:.5}
   #siteBtn.miss{background:var(--warn);color:#2a1700}
+  /* ───────── 2026-10-26 19:37 ผู้ใช้ (รูปแผงห่อ: แถบ “ดู 3D / สถานะ” บังเลขห่อ + ตู้ · Lot · ชื่อโครงการ): “หน้าแสกน ผมมองไม่เห็นชื่อ order เลย ตัวเลือกระหว่าง 3D บัง”
+     เดิม: แผงห่อสูงตามรายการ (รายการสูงสุด 100vh − 400px) + แถบสถานะ/ติ๊กทั้งห่อ (18:23) = ยอดแผงขึ้นไปใต้หัวแอป + แถบเลือกโหมด
+     ตอนนี้: แผงห่อสูงไม่เกินจอ − หัวแอป − แถบเลือกโหมด (ยอดแผงอยู่ใต้แถบเสมอ) · รายการชิ้นเลื่อนในตัวเอง ───────── */
+  #sheet.pack:not([hidden]){display:flex;flex-direction:column;max-height:calc(100vh - var(--safe-t) - var(--safe-b) - 206px);max-height:calc(100dvh - var(--safe-t) - var(--safe-b) - 206px)}
+  #sheet.pack #packBox:not([hidden]){display:flex;flex-direction:column;flex:1 1 auto;min-height:0}
+  #sheet.pack #packList{flex:1 1 auto;min-height:96px;max-height:none}
+  #sheet.pack .row{flex:none}
+  #packLots{font-size:13.5px;font-weight:700;color:var(--muted);margin:-2px 0 8px} #packLots b{color:var(--fg)} #packLots .ok{color:#86efac} #packLots .ms{color:#fcd34d}
 </style>
 </head>
 <body>
@@ -265,6 +273,7 @@
     <div id="packHead"><div id="packCode"></div><span id="packCnt"></span></div>
     <div id="packSub"></div>
     <div id="packSt" hidden></div><!-- 2026-10-26 18:23 สถานะ Site ของห่อ -->
+    <div id="packLots" hidden></div><!-- 19:37 ห่อของ Lot นี้ ตรวจรับแล้ว x / ทั้งหมด -->
     <div class="pkbar" id="packBar" hidden><button id="packAll">☑ ติ๊กทั้งห่อ</button><span id="packN"></span></div>
     <div id="packList"></div>
   </div>
@@ -894,6 +903,9 @@
     var pdo = {};
     if (d.pr) for (var q = 0; q < d.pr.k.length; q++) { var bm = bcOrd(d.pr.bc[q]), cm = /^(.+?)-P\d+$/i.exec(d.pr.cp[q] || ""); if (bm && cm && !pdo[cm[1].toUpperCase()]) pdo[cm[1].toUpperCase()] = bm.ord; }
     IDX.pmap = pm; IDX.prow = prow; IDX.pdOrd = pdo;
+    var lpk = {};   // 2026-10-26 19:37: ห่อของแต่ละ Lot (เลข Lot ในดัชนี → [Code Pack]) — นับ “ตรวจรับแล้ว x / ทั้งหมด ห่อ”
+    if (d.pr) for (var z = 0; z < d.pr.k.length; z++) { var lz = d.pr.li[z], cz = d.pk[d.pr.k[z]], az = lpk[lz] || (lpk[lz] = []); if (az.indexOf(cz) < 0) az.push(cz); }
+    IDX.lotPk = lpk;
     setTimeout(packRestore, 0);   // เพิ่งได้ดัชนี (เปิดแอปใหม่หลังไปดู 3D) = แผง Pack ที่ค้างไว้กลับมา
   }
   /* โหลด/ตรวจรายการบาร์โค้ด: มีในเครื่องแล้ว = ใช้ทันที · ตรวจ Drive ว่าไฟล์เปลี่ยนไหม (ไม่บ่อยกว่าทุก 3 นาที เว้นแต่ force) */
@@ -1272,7 +1284,7 @@
   function siteLoad(){
     if (!PK || !DRV) return;
     var my = PK;
-    stepsRead().then(function(r){ if (PK !== my) return; my.rec = recOf(r.base, my.code);
+    stepsRead().then(function(r){ if (PK !== my) return; my.rec = recOf(r.base, my.code); my.base = r.base;   // 19:37 + base (นับห่อของ Lot)
       if (!my.ckTouched) my.ck = siteFromRec(my.rec);   // ยังไม่ได้แตะ = เริ่มจากที่บันทึกไว้
       packListDraw(); packNote(); })
       .catch(function(e){ if (PK !== my) return; my.rec = null; my.err = e; siteUi(); });
@@ -1289,6 +1301,7 @@
       : full ? "✓ ถึงไซต์ครบทั้งห่อ " + n + " รายการ <small>ตรวจ " + esc(hm(rec.at)) + (rec.by ? " · " + esc(rec.by) : "") + "</small>"
       : rec ? "⚠ ถึงไซต์ไม่ครบ — ขาด " + miss + " จาก " + (rec.n || n) + " รายการ <small>ตรวจ " + esc(hm(rec.at)) + (rec.by ? " · " + esc(rec.by) : "") + (rec.mn && rec.mn.length ? " · ขาด: " + esc(rec.mn.slice(0, 4).join(", ")) + (rec.mn.length > 4 ? " …" : "") : "") + "</small>"
       : st ? "ยังไม่ได้ตรวจรับที่ไซต์ — ติ๊กชิ้นที่ได้รับ แล้วกดยืนยัน" : "ยังไม่ได้ตรวจรับที่ไซต์ <small>ตรวจรับ = แตะ 🏭 สถานะ ด้านบน (แผงนี้ค้างไว้)</small>";
+    packLotsUi();   // 19:37
     $("packBar").hidden = !st;
     if (!st) return;
     $("packN").innerHTML = "ได้รับ <b>" + got + "</b> / " + n;
@@ -1298,6 +1311,15 @@
     b.disabled = ld || !!PK.busy || !dirty;
     b.textContent = PK.busy ? "กำลังบันทึก…" : ld ? "กำลังเช็ค…" : !dirty ? (rec ? (full ? "✓ บันทึกแล้ว · ครบ" : "บันทึกแล้ว · ขาด " + miss) : "ติ๊กชิ้นที่ได้รับ")
       : !got ? "ยกเลิกการตรวจห่อนี้" : got === n ? "✓ ยืนยันครบทั้งห่อ (" + n + ")" : "บันทึก · ขาด " + (n - got) + " รายการ";
+  }
+  /* 19:37 ผู้ใช้: “เพิ่มห่อว่ามีกี่ห่อด้วย ติ๊กแล้วห่อนี้ก็จะแสดง 1/ทั้งหมด” → ห่อของ Lot (ทุก Code Pack ของ Lot ใน lots/pinfo.csv) ตรวจรับแล้วกี่ห่อ */
+  function packLotsUi(){
+    var el = $("packLots"); if (!PK || !IDX.lotPk || !IDX.data) { el.hidden = true; return; }
+    var d = IDX.data, out = [];
+    pkLots().forEach(function(l){ var li = d.lots.indexOf(l), codes = li >= 0 ? IDX.lotPk[li] || [] : [], e = PK.base && PK.base.lots ? PK.base.lots[norm(l)] : null, c = 0, ms = 0;
+      codes.forEach(function(cd){ var v = e && e.sitePk && e.sitePk[cd]; if (v) { c++; if (v.miss && v.miss.length) ms++; } });
+      if (codes.length) out.push("📦 ห่อของ " + esc(l) + ": ตรวจรับแล้ว <b class='" + (c >= codes.length && !ms ? "ok" : "") + "'>" + c + " / " + codes.length + "</b> ห่อ" + (ms ? " <span class='ms'>· ไม่ครบ " + ms + "</span>" : "")); });
+    el.innerHTML = PK.base ? out.join("<br>") : ""; el.hidden = !PK.base || !out.length;
   }
   function siteTick(i){
     var x = PK && PK.rows[i]; if (!x || PK.busy || PK.rec === undefined) return;
@@ -1335,7 +1357,7 @@
         if (t === 4) throw new Error("มีคนบันทึกพร้อมกันหลายครั้ง ลองใหม่อีกที");
         await sleep(400 + t * 500);
       }
-      my.rec = rec; my.ck = siteFromRec(rec); my.ckTouched = false; pkSave();
+      my.rec = rec; my.ck = siteFromRec(rec); my.ckTouched = false; my.base = cur.base; pkSave();   // 19:37 + base
       toast(!rec ? "ยกเลิกการตรวจห่อ " + my.code + " แล้ว" : ms.length ? "บันทึกแล้ว · ห่อ " + my.code + " ขาด " + ms.length + " รายการ" : "✓ ห่อ " + my.code + " ถึงไซต์ครบ " + n + " รายการ");
       if (navigator.vibrate) try { navigator.vibrate(rec && !ms.length ? 60 : [40, 60, 40]); } catch (x) {}
     } catch (x) {

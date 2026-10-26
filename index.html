@@ -895,7 +895,12 @@
     if (!codeLike(t) || !DRV) { lotMsg(""); return; }
     if (!IDX.map && (IDX.loading || !IDX.err)) lotMsg("⏳ กำลังโหลดข้อมูล Lot ผลิต… (ครั้งแรกอาจนานสักครู่)");
     else if (!IDX.map) lotMsg("โหลดข้อมูล Lot ผลิตไม่ได้ — " + esc(IDX.err.message) + " <button class='link' id='idxRetry'>ลองใหม่</button>");
-    else lotMsg("ไม่พบ Code Part / บาร์โค้ดนี้ใน Lot ผลิต<br><small>" + esc(dataTxt()) + (IDX.data && !IDX.data.cp ? " · ข้อมูลยังไม่มี Code Part — รอ StarSync v1.17 ที่เครื่องออฟฟิศ" : "") + (IDX.loading ? " · กำลังตรวจข้อมูลใหม่…" : "") + "</small>");
+    else {
+      /* 2026-10-26 09:29 ผู้ใช้ยิง PD69000045434-P131 แล้ว “ไม่เจอ Lot” (ข้อมูลยังเป็น StarSync v1.16 ไม่มี Code Part) — ไม่เจอ = ตรวจ Drive ใหม่เลย
+         (เดิมรอรอบ 3 นาที/สลับแอป) เพิ่งตรวจไม่ถึง 30 วิ = ไม่ตรวจซ้ำ · ได้ข้อมูลใหม่ = refreshSheet ดูโค้ดเดิมให้อีกรอบเอง */
+      if (DRV && !IDX.loading && Date.now() - IDX.checked > 30000) idxLoad(true);
+      lotMsg("ไม่พบ Code Part / บาร์โค้ดนี้ใน Lot ผลิต<br><small>" + esc(dataTxt()) + (IDX.data && !IDX.data.cp ? " · ข้อมูลยังไม่มี Code Part — รอ StarSync v1.17 ที่เครื่องออฟฟิศ" : "") + (IDX.loading ? " · กำลังตรวจข้อมูลใหม่…" : "") + "</small>");
+    }
   }
   /* ข้อมูลเพิ่งโหลดเสร็จ ระหว่างแผงเปิดอยู่ = ดูบาร์โค้ดเดิมใหม่ */
   function refreshSheet(){ if (!$("sheet").hidden && shownText && !CUR) renderLot(shownText); }

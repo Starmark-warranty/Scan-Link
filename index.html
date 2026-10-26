@@ -728,7 +728,7 @@
   var STEP = {edge:{h:"Edge", th:"ปิดขอบ", b:"stepEdge"}, paint:{h:"สี", th:"รับเข้าทำสี", b:"stepPaint", rx:1}, coat:{h:"เคลือบ", th:"รับเข้าเคลือบ", b:"stepCoat", rx:1},
               drill:{h:"Drill", th:"เจาะ", b:"stepDrill"}, site:{h:"Site", th:"ถึงไซต์", b:"stepSite"}};
   var BY_KEY = "scanlink_by", BY_ASKED = "scanlink_by_asked", DEV_KEY = "scanlink_dev";
-  var IDX_FV = 4;            // รูปแบบดัชนีที่จำในเครื่อง: 2 = Code Part + Barcode · 3 = + Proj Name ราย Lot · 4 = + Code Pack รายชิ้น (2026-10-26 17:02) (เปลี่ยนเลข = สร้างใหม่ทุกเครื่อง)
+  var IDX_FV = 5;            // รูปแบบดัชนีที่จำในเครื่อง: 2 = Code Part + Barcode · 3 = + Proj Name ราย Lot · 4 = + Code Pack รายชิ้น (2026-10-26 17:02) · 5 = + OrderNumber รายชิ้น (17:38) (เปลี่ยนเลข = สร้างใหม่ทุกเครื่อง)
   var IDX = {map:null, lots:null, nm:null, cab:null, u:0, at:"", rows:0, nLots:0, loading:null, checked:0, err:null, info:null};
   var CUR = null;            // แผงที่เปิดอยู่: {t, hit, entry, busy}
   var hold = false;          // เจอ Lot แล้ว = หยุดสแกนจนกว่าจะกด “สแกนต่อ”
@@ -830,23 +830,23 @@
     /* 2026-10-26 09:20 ผู้ใช้: “Code Part ครับ ที่มีทุกสติกเกอร์ที่แสกน” → หาจาก Code Part (cpt · StarSync v1.17) ก่อน · Barcode (bc1) สำรอง */
     var iL = h.indexOf("lot"), iN = h.indexOf("nm"), iC = h.indexOf("cab"), iB = h.indexOf("bc1"), iP = h.indexOf("cpt"), iJ = h.indexOf("pjn"), lp = [];   // 09:55 + Proj Name ราย Lot
     /* 2026-10-26 17:02: + Code Pack (pack) · ขนาด (l × w) · มีขนาด (sz 1 = ชิ้นไม้ / 0 = อุปกรณ์) · Product Article (art) — ไว้ทำรายการชิ้นใน Pack */
-    var iK = h.indexOf("pack"), iS = h.indexOf("sz"), iX = h.indexOf("l"), iY = h.indexOf("w"), iA = h.indexOf("art");
-    var pk = [], pkIx = {}, pr = {k:[], li:[], cp:[], bc:[], nm:[], cab:[], l:[], w:[], sz:[]};
+    var iK = h.indexOf("pack"), iS = h.indexOf("sz"), iX = h.indexOf("l"), iY = h.indexOf("w"), iA = h.indexOf("art"), iO = h.indexOf("ord");   // 17:38 + ord (OrderNumber · StarSync v1.17)
+    var pk = [], pkIx = {}, pr = {k:[], li:[], cp:[], bc:[], nm:[], cab:[], l:[], w:[], sz:[], od:[]};
     if (iL < 0 || (iB < 0 && iP < 0)) throw new Error("ไฟล์ " + INFO_F + " ไม่มีช่อง lot / cpt / bc1");
-    var bcs = [], li = [], nm = [], cab = [], lots = [], lotIx = {}, pv = {L:"", N:"", C:"", B:"", P:"", J:"", K:"", S:"", X:"", Y:"", A:""};
+    var bcs = [], li = [], nm = [], cab = [], lots = [], lotIx = {}, pv = {L:"", N:"", C:"", B:"", P:"", J:"", K:"", S:"", X:"", Y:"", A:"", O:""};
     var val = function(v, k){ v = v == null ? "" : v; if (v === "^") return pv[k]; if (v.charAt(0) === "=") v = v.slice(1); pv[k] = v; return v; };
     for (var r = 1; r < lines.length; r++) {
       var ln = lines[r]; if (!ln) continue;
       while ((ln.split('"').length - 1) % 2 && r + 1 < lines.length) ln += "\n" + lines[++r];   // ค่าที่มีขึ้นบรรทัดใหม่
       var a = csvLine(ln), L = val(a[iL], "L"), N = iN >= 0 ? val(a[iN], "N") : "", C = iC >= 0 ? val(a[iC], "C") : "", B = iB >= 0 ? val(a[iB], "B") : "", P = iP >= 0 ? val(a[iP], "P") : "";
-      var K = iK >= 0 ? val(a[iK], "K") : "", S = iS >= 0 ? val(a[iS], "S") : "", X = iX >= 0 ? val(a[iX], "X") : "", Y = iY >= 0 ? val(a[iY], "Y") : "", A = iA >= 0 ? val(a[iA], "A") : "";   // 17:02 อ่านทุกแถว (^ = แถวบน)
+      var K = iK >= 0 ? val(a[iK], "K") : "", S = iS >= 0 ? val(a[iS], "S") : "", X = iX >= 0 ? val(a[iX], "X") : "", Y = iY >= 0 ? val(a[iY], "Y") : "", A = iA >= 0 ? val(a[iA], "A") : "", O = iO >= 0 ? val(a[iO], "O") : "";   // 17:02 อ่านทุกแถว (^ = แถวบน) · 17:38 + O
       if (!L) continue;
       var ix = lotIx[L]; if (ix == null) { ix = lotIx[L] = lots.length; lots.push(L); lp.push(""); }
       if (iJ >= 0 && !lp[ix]) { var J = val(a[iJ], "J"); if (J) lp[ix] = J; } else if (iJ >= 0) val(a[iJ], "J");   // ^ ต้องอ่านทุกแถว (ซ้ำแถวบน)
       [P, B].forEach(function(v){ var k = String(v || "").trim().toUpperCase(); if (!k || k === "MANUAL") return; bcs.push(k); li.push(ix); nm.push(N); cab.push(C); });
       var kk = String(K || "").trim().toUpperCase();   // 17:02 ชิ้นนี้อยู่ Pack ไหน
       if (kk && kk !== "MANUAL") { var pi = pkIx[kk]; if (pi == null) { pi = pkIx[kk] = pk.length; pk.push(kk); }
-        pr.k.push(pi); pr.li.push(ix); pr.cp.push(String(P || "").trim()); pr.bc.push(String(B || "").trim()); pr.nm.push(N); pr.cab.push(A || C); pr.l.push(X); pr.w.push(Y); pr.sz.push(S); }
+        pr.k.push(pi); pr.li.push(ix); pr.cp.push(String(P || "").trim()); pr.bc.push(String(B || "").trim()); pr.nm.push(N); pr.cab.push(A || C); pr.l.push(X); pr.w.push(Y); pr.sz.push(S); pr.od.push(String(O || "").trim()); }
     }
     return {bcs:bcs, li:li, nm:nm, cab:cab, lots:lots, lp:lp, cp: iP >= 0, pk:pk, pr:pr, fv: IDX_FV};
   }
@@ -860,7 +860,10 @@
       for (var j = 0; j < d.pk.length; j++) { prow.push([]); if (!pm.has(d.pk[j])) pm.set(d.pk[j], j); var zz = d.pk[j].replace(/[^0-9A-Z]/g, ""); if (zz !== d.pk[j] && !pm.has(zz)) pm.set(zz, j); }
       for (var r = 0; r < d.pr.k.length; r++) prow[d.pr.k[r]].push(r);
     }
-    IDX.pmap = pm; IDX.prow = prow;
+    /* 17:38: เลขใบสั่งผลิต (PD… หน้า Code Part) → เลขออเดอร์ 10 หลัก จากชิ้นที่ Barcode เป็นตัวเลข — ใช้กับชิ้นที่ Barcode เป็น Manual */
+    var pdo = {};
+    if (d.pr) for (var q = 0; q < d.pr.k.length; q++) { var bm = bcOrd(d.pr.bc[q]), cm = /^(.+?)-P\d+$/i.exec(d.pr.cp[q] || ""); if (bm && cm && !pdo[cm[1].toUpperCase()]) pdo[cm[1].toUpperCase()] = bm.ord; }
+    IDX.pmap = pm; IDX.prow = prow; IDX.pdOrd = pdo;
     setTimeout(packRestore, 0);   // เพิ่งได้ดัชนี (เปิดแอปใหม่หลังไปดู 3D) = แผง Pack ที่ค้างไว้กลับมา
   }
   /* โหลด/ตรวจรายการบาร์โค้ด: มีในเครื่องแล้ว = ใช้ทันที · ตรวจ Drive ว่าไฟล์เปลี่ยนไหม (ไม่บ่อยกว่าทุก 3 นาที เว้นแต่ force) */
@@ -1086,15 +1089,25 @@
     if (j == null) return null;
     var d = IDX.data, pr = d.pr;
     return {code:d.pk[j], rows:IDX.prow[j].map(function(r){ var x = pr.li[r];
-      return {cp:pr.cp[r], bc:pr.bc[r], nm:pr.nm[r], cab:pr.cab[r], l:pr.l[r], w:pr.w[r], sz:pr.sz[r], lot:d.lots[x], pj:(d.lp && d.lp[x]) || ""}; })};
+      return {cp:pr.cp[r], bc:pr.bc[r], nm:pr.nm[r], cab:pr.cab[r], l:pr.l[r], w:pr.w[r], sz:pr.sz[r], od:pr.od ? pr.od[r] : "", lot:d.lots[x], pj:(d.lp && d.lp[x]) || ""}; })};
   }
-  /* ชิ้นใน Pack → เลขออเดอร์ + เลขชิ้น (ไม่มี Barcode ตัวเลข = ไม่มี 3D) */
-  function partRef(r){
-    var m = /^(\d{10})\d(\d{3,})$/.exec(String(r.bc || "").trim()); if (!m) return null;
-    var c = /-P0*(\d+)$/i.exec(String(r.cp || "").trim()), n = c ? parseInt(c[1], 10) : parseInt(m[2], 10);
-    return n > 0 ? {ord:m[1], p:n} : null;
+  /* ───────── 17:38 ผู้ใช้ (รูป Pack PD69000045189-PD06_2 “1 ชิ้น · อุปกรณ์ 11”): “มันไม่ใช่อุปกรณ์ครับ มันคือตู้ … อยากให้ชิ้นในตู้มันกดเข้าไปที่ชิ้นได้ เช่น 3D ด้านหลัง
+       ของชิ้นนั้น พอกดไปก็เข้าของชิ้นนั้น · อันนี้คือ 1 pack มี 11 ชิ้น ประมาณนี้” ─────────
+     เดิม (17:02): เลขออเดอร์เอาจาก Barcode อย่างเดียว · Barcode ไม่ใช่ตัวเลข = “อุปกรณ์” ไม่มี 3D
+       ชิ้นของตู้ BND214 ที่ Barcode เป็น Manual (Back Panel · Bottom · Front Rail · K40 …) เลยกลายเป็นอุปกรณ์หมด เหลือ Right Side ชิ้นเดียว
+       (เทียบงาน 3D ของ PANTRY: BND214-01 = P31–P45 ชื่อ/ขนาดตรงทุกชิ้น)
+     ตอนนี้ เลขออเดอร์ (หาตามลำดับ): Barcode ตัวเลข → เลข PD หน้า Code Part ของชิ้นอื่นที่มี Barcode (IDX.pdOrd) → ชิ้นอื่นใน Pack เดียวกัน → ช่อง OrderNumber (ord)
+       เลขชิ้น: ท้าย Code Part (-P34) → Barcode · ไม่มีเลขชิ้น = เปิดด้วย “รหัสตู้_ชื่อชิ้น” (หน้าดูงานหาได้ · ตรงหลายชิ้น = เน้นทุกชิ้น)
+       อุปกรณ์ = ไม่มีขนาด (l × w) และไม่มีเลขชิ้น — ชิ้นไม้ที่มีขนาดเป็นชิ้นในตู้เสมอ */
+  function bcOrd(bc){ var s = String(bc || "").replace(/\D/g, ""), m = /^(\d{10})\d(\d{3,})$/.exec(s); return m ? {ord:m[1], p:parseInt(m[2], 10)} : null; }
+  function partRef(r, packOrd){
+    var b = bcOrd(r.bc), c = /^(.+?)-P0*(\d+)$/i.exec(String(r.cp || "").trim()), n = c ? parseInt(c[2], 10) : b ? b.p : 0;
+    var ord = b ? b.ord : (c && IDX.pdOrd && IDX.pdOrd[c[1].toUpperCase()]) || packOrd || ((/^(\d{10})/.exec(r.od || "") || [])[1]) || "";
+    var key = n > 0 ? "P" + n : (r.cab && r.nm ? r.cab + "_" + r.nm : "");
+    return ord && key ? {ord:ord, p:n, key:key} : null;
   }
-  function part3d(ref){ return SN_BASE + "view.html?view=o" + ref.ord + "&p=P" + ref.p; }
+  function hasSize(r){ return parseFloat(r.l) > 0 && parseFloat(r.w) > 0; }
+  function part3d(ref){ return SN_BASE + "view.html?view=o" + ref.ord + "&p=" + encodeURIComponent(ref.key); }
   function fmtMm(v){ var n = parseFloat(v); return isFinite(n) && n > 0 ? String(Math.round(n * 10) / 10) : ""; }
   /* ถามว่าออเดอร์มีงาน 3D บน GitHub ไหม (ไฟล์ชี้ v/o<เลข>.bin · จำผล 10 นาที) */
   function ord3dCheck(ord){
@@ -1112,23 +1125,28 @@
     P = P || packLookup(t); if (!P) return false;
     var last = PK && PK.code === P.code ? PK.last : (packSaved() || {}).c === P.code ? (packSaved().last || "") : "";
     CUR = null; hold = true;
-    var rows = P.rows.map(function(r){ var ref = partRef(r), acc = String(r.sz) === "0" || !ref;
-      var lab = (/-(P\d+)$/i.exec(r.cp || "") || [])[1] || (ref ? "P" + ref.p : (r.cp || "—"));
-      return {r:r, ref:ref, acc:acc, lab:lab.toUpperCase(), key:r.cp || r.bc || r.nm}; });
-    rows.sort(function(a, b){ return (a.acc - b.acc) || (a.ref && b.ref ? (a.ref.ord < b.ref.ord ? -1 : a.ref.ord > b.ref.ord ? 1 : a.ref.p - b.ref.p) : 0) || String(a.r.nm).localeCompare(String(b.r.nm)); });
+    /* 17:38: เลขออเดอร์ที่ชิ้นส่วนใหญ่ใน Pack ใช้ = ของชิ้นที่หาเองไม่ได้ (Barcode Manual + ไม่รู้เลข PD) */
+    var oc = {}, packOrd = "";
+    P.rows.forEach(function(r){ var x = partRef(r, ""); if (x) oc[x.ord] = (oc[x.ord] || 0) + 1; });
+    Object.keys(oc).forEach(function(o){ if (!packOrd || oc[o] > oc[packOrd]) packOrd = o; });
+    var rows = P.rows.map(function(r){ var ref = partRef(r, packOrd), pn = ref && ref.p > 0, acc = !pn && !hasSize(r);
+      var lab = pn ? "P" + ref.p : (/-(P\d+)$/i.exec(r.cp || "") || [])[1] || "—";
+      return {r:r, ref:acc ? null : ref, acc:acc, lab:lab.toUpperCase(), key:r.cp || r.bc || (r.cab + "_" + r.nm)}; });
+    rows.sort(function(a, b){ return (a.acc - b.acc) || (!!b.ref - !!a.ref) || (a.ref && b.ref ? (a.ref.ord < b.ref.ord ? -1 : a.ref.ord > b.ref.ord ? 1 : (a.ref.p || 1e9) - (b.ref.p || 1e9)) : 0) || String(a.r.nm).localeCompare(String(b.r.nm)); });
     PK = {code:P.code, t:t, rows:rows, last:last};
     ssSet(PK_SS, JSON.stringify({c:P.code, t:t, at:Date.now(), last:last}));
     var nPart = rows.filter(function(x){ return !x.acc; }).length, nAcc = rows.length - nPart;
-    var lots = [], pj = "";
-    rows.forEach(function(x){ if (lots.indexOf(x.r.lot) < 0) lots.push(x.r.lot); if (!pj && x.r.pj) pj = x.r.pj; });
+    var lots = [], pj = "", cabs = [];
+    rows.forEach(function(x){ if (lots.indexOf(x.r.lot) < 0) lots.push(x.r.lot); if (!pj && x.r.pj) pj = x.r.pj; if (!x.acc && x.r.cab && cabs.indexOf(x.r.cab) < 0) cabs.push(x.r.cab); });
     $("lotBox").hidden = true; $("packBox").hidden = false; $("sheet").classList.remove("lot"); $("sheet").classList.add("pack");
     $("sheetKind").textContent = "📦 Pack";
     $("packCode").textContent = P.code;
     $("packCnt").textContent = (nPart ? nPart + " ชิ้น" : "") + (nAcc ? (nPart ? " · " : "") + "อุปกรณ์ " + nAcc : "");
-    $("packSub").textContent = ["Lot " + lots.join(", "), pj].filter(Boolean).join(" · ");
+    $("packSub").textContent = [cabs.length ? "ตู้ " + cabs.join(", ") : "", "Lot " + lots.join(", "), pj].filter(Boolean).join(" · ");   // 17:38 + ตู้
     $("packList").innerHTML = rows.map(function(x, i){
       var r = x.r, sz = fmtMm(r.l) && fmtMm(r.w) ? fmtMm(r.l) + " × " + fmtMm(r.w) : "", sub = [r.cab, sz].filter(Boolean).join(" · ");
-      if (x.acc) return '<div class="pkr acc"><b>' + esc(x.ref ? x.lab : "—") + '</b><span class="t"><span>' + esc(r.nm || r.cp || "อุปกรณ์") + '</span><small>' + esc(["อุปกรณ์", sub].filter(Boolean).join(" · ")) + '</small></span></div>';
+      if (x.acc) return '<div class="pkr acc"><b>—</b><span class="t"><span>' + esc(r.nm || r.cp || "อุปกรณ์") + '</span><small>' + esc(["อุปกรณ์", sub].filter(Boolean).join(" · ")) + '</small></span></div>';
+      if (!x.ref) return '<div class="pkr no3d"><b>' + esc(x.lab) + '</b><span class="t"><span>' + esc(r.nm || "ชิ้น") + '</span><small>' + esc(sub || r.cp || "") + '</small></span><i>ไม่มี 3D</i></div>';   // 17:38 หาเลขออเดอร์ไม่ได้
       return '<button class="pkr' + (x.key === last ? ' last' : '') + '" data-pk="' + i + '"><b>' + esc(x.lab) + '</b><span class="t"><span>' + esc(r.nm || "ชิ้น") + '</span><small>' + esc(sub || r.cp || "") + '</small></span><i>🧊 3D</i></button>';
     }).join("") || '<div class="pkr acc"><span class="t"><span>ไม่มีรายการชิ้นใน Pack นี้</span></span></div>';
     lotMsg("");

@@ -695,7 +695,7 @@
   /* 2026-10-26 09:37 ผู้ใช้: “แสกนแล้วติ๊ก Site ด้วยครับ” → ตอบ “ทั้ง Lot (แบบ Edge/Drill)” = ปุ่มที่ 3 · steps.json คีย์ site */
   var STEP = {edge:{h:"Edge", th:"ปิดขอบ", b:"stepEdge"}, drill:{h:"Drill", th:"เจาะ", b:"stepDrill"}, site:{h:"Site", th:"ถึงไซต์", b:"stepSite"}};
   var BY_KEY = "scanlink_by", BY_ASKED = "scanlink_by_asked", DEV_KEY = "scanlink_dev";
-  var IDX_FV = 2;            // รูปแบบดัชนีที่จำในเครื่อง: 2 = Code Part + Barcode (เปลี่ยนเลข = สร้างใหม่ทุกเครื่อง)
+  var IDX_FV = 3;            // รูปแบบดัชนีที่จำในเครื่อง: 2 = Code Part + Barcode · 3 = + Proj Name ราย Lot (เปลี่ยนเลข = สร้างใหม่ทุกเครื่อง)
   var IDX = {map:null, lots:null, nm:null, cab:null, u:0, at:"", rows:0, nLots:0, loading:null, checked:0, err:null, info:null};
   var CUR = null;            // แผงที่เปิดอยู่: {t, hit, entry, busy}
   var hold = false;          // เจอ Lot แล้ว = หยุดสแกนจนกว่าจะกด “สแกนต่อ”
@@ -795,19 +795,20 @@
     if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
     var lines = text.split(/\r?\n/), h = csvLine(lines[0] || "").map(function(x){ return x.trim(); });
     /* 2026-10-26 09:20 ผู้ใช้: “Code Part ครับ ที่มีทุกสติกเกอร์ที่แสกน” → หาจาก Code Part (cpt · StarSync v1.17) ก่อน · Barcode (bc1) สำรอง */
-    var iL = h.indexOf("lot"), iN = h.indexOf("nm"), iC = h.indexOf("cab"), iB = h.indexOf("bc1"), iP = h.indexOf("cpt");
+    var iL = h.indexOf("lot"), iN = h.indexOf("nm"), iC = h.indexOf("cab"), iB = h.indexOf("bc1"), iP = h.indexOf("cpt"), iJ = h.indexOf("pjn"), lp = [];   // 09:55 + Proj Name ราย Lot
     if (iL < 0 || (iB < 0 && iP < 0)) throw new Error("ไฟล์ " + INFO_F + " ไม่มีช่อง lot / cpt / bc1");
-    var bcs = [], li = [], nm = [], cab = [], lots = [], lotIx = {}, pv = {L:"", N:"", C:"", B:"", P:""};
+    var bcs = [], li = [], nm = [], cab = [], lots = [], lotIx = {}, pv = {L:"", N:"", C:"", B:"", P:"", J:""};
     var val = function(v, k){ v = v == null ? "" : v; if (v === "^") return pv[k]; if (v.charAt(0) === "=") v = v.slice(1); pv[k] = v; return v; };
     for (var r = 1; r < lines.length; r++) {
       var ln = lines[r]; if (!ln) continue;
       while ((ln.split('"').length - 1) % 2 && r + 1 < lines.length) ln += "\n" + lines[++r];   // ค่าที่มีขึ้นบรรทัดใหม่
       var a = csvLine(ln), L = val(a[iL], "L"), N = iN >= 0 ? val(a[iN], "N") : "", C = iC >= 0 ? val(a[iC], "C") : "", B = iB >= 0 ? val(a[iB], "B") : "", P = iP >= 0 ? val(a[iP], "P") : "";
       if (!L) continue;
-      var ix = lotIx[L]; if (ix == null) { ix = lotIx[L] = lots.length; lots.push(L); }
+      var ix = lotIx[L]; if (ix == null) { ix = lotIx[L] = lots.length; lots.push(L); lp.push(""); }
+      if (iJ >= 0 && !lp[ix]) { var J = val(a[iJ], "J"); if (J) lp[ix] = J; } else if (iJ >= 0) val(a[iJ], "J");   // ^ ต้องอ่านทุกแถว (ซ้ำแถวบน)
       [P, B].forEach(function(v){ var k = String(v || "").trim().toUpperCase(); if (!k || k === "MANUAL") return; bcs.push(k); li.push(ix); nm.push(N); cab.push(C); });
     }
-    return {bcs:bcs, li:li, nm:nm, cab:cab, lots:lots, cp: iP >= 0, fv: IDX_FV};
+    return {bcs:bcs, li:li, nm:nm, cab:cab, lots:lots, lp:lp, cp: iP >= 0, fv: IDX_FV};
   }
   function useIndex(d){
     var m = new Map();
@@ -846,7 +847,7 @@
     if (i == null && /[^0-9A-Z]/.test(k)) i = IDX.map.get(k.replace(/[^0-9A-Z]/g, ""));   // *123* / ช่องว่าง / ขีด
     if (i == null) return null;
     var d = IDX.data;
-    return {bc:d.bcs[i], lot:d.lots[d.li[i]], nm:d.nm[i], cab:d.cab[i]};
+    return {bc:d.bcs[i], lot:d.lots[d.li[i]], nm:d.nm[i], cab:d.cab[i], pj: d.lp ? d.lp[d.li[i]] || "" : ""};
   }
   function codeLike(t){ t = String(t || "").trim(); return t.length >= 6 && t.length <= 40 && !/\s/.test(t); }
 
@@ -903,7 +904,7 @@
   }
   function wantOf(e){ var w = {}; Object.keys(STEP).forEach(function(k){ w[k] = !!(e && e[k]); }); return w; }
   function lotMsg(html){ var m = $("lotMsg"); m.hidden = !html; m.innerHTML = html || ""; }
-  function dataTxt(){ return IDX.map ? "ข้อมูล Lot " + IDX.nLots.toLocaleString("th-TH") + " Lot · " + IDX.rows.toLocaleString("th-TH") + " รหัส · โหลด " + hm(IDX.at) : ""; }
+  function dataTxt(){ return IDX.map ? "ข้อมูลโหลด " + hm(IDX.at) : ""; }   // 09:55 ไม่บอกจำนวน Lot/รหัส
   function renderLot(t){
     var hit = lookup(t);
     CUR = hit ? {t:t, hit:hit, entry:undefined, want:null, busy:null} : null;
@@ -912,8 +913,10 @@
     if (hit) {
       hold = true;
       $("lotName").textContent = hit.lot;
-      $("lotPart").textContent = [hit.nm, hit.cab].filter(Boolean).join(" · ");
-      $("lotData").textContent = dataTxt(); showBy(); lotMsg(""); stepUi();
+      /* 2026-10-26 09:55 ผู้ใช้: “แสดง Proj Name แทนชื่อตู้” · “เอาที่แสดงข้อมูลกี่ Lot กี่รหัสออก” (เดิม: ชื่อ Part · ชื่อตู้ + บรรทัด “ข้อมูล Lot n Lot · n รหัส · โหลด”)
+         ข้อมูลเก่า (ไม่มี Proj Name) = ชื่อตู้แทน */
+      $("lotPart").textContent = [hit.nm, hit.pj || hit.cab].filter(Boolean).join(" · ");
+      $("lotData").textContent = ""; showBy(); lotMsg(""); stepUi();
       var my = CUR;
       stepsRead().then(function(r){ if (CUR !== my) return; my.entry = r.base.lots[norm(hit.lot)] || {}; my.want = wantOf(my.entry); stepUi(); })
         .catch(function(e){ if (CUR !== my) return; my.entry = {}; my.want = wantOf(null); stepUi(); lotMsg("เช็คสถานะไม่ได้ — " + esc(e.message)); });

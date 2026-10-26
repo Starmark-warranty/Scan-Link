@@ -157,6 +157,17 @@
   #lotFoot .link{font-size:12.5px;padding:2px 4px}
   #lotMsg{margin:-2px 0 12px;font-size:14px;line-height:1.45;color:var(--warn)}
   #lotMsg small{color:var(--muted)} #lotMsg .link{font-size:14px;padding:0 4px;color:var(--fg)}
+  /* 2026-10-26 09:49 ผู้ใช้: “เปลี่ยนเป็นติ๊กแล้วมีปุ่มบันทึกแทนคำว่าสแกนต่อ แล้วเอาคำว่าสแกนต่อไปแทนปุ่มคัดลอก แล้วถอดปุ่มคัดลอกออก”
+     โหมดสถานะ (#sheet.st): ไม่มีคัดลอก · [สแกนต่อ (รอง)] [บันทึก (หลัก)] · ไม่เจอ Lot = [สแกนต่อ] ปุ่มเดียว · โหมด 3D = [คัดลอก] [สแกนต่อ] เหมือนเดิม */
+  #saveBtn{display:none}
+  #sheet.st #copyBtn{display:none}
+  #sheet.st.lot #saveBtn{display:inline-flex}
+  #sheet.st.lot #closeSheet{background:rgba(255,255,255,.16);color:var(--fg)}
+  #saveBtn:disabled{opacity:.45}
+  .step.pend{border-style:dashed}
+  .step.pend.done small{color:#fde68a}
+  .step.off{border-color:var(--bad);background:rgba(239,68,68,.14)}
+  .step.off small{color:#fca5a5;font-weight:700}
   /* ───────── 2026-10-26 (ผู้ใช้ 08:58 เลือก “3D / สถานะ”): เลือกโหมดก่อนสแกน ───────── */
   #modeBar{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--safe-t) + 62px);display:flex;gap:4px;padding:4px;
     border-radius:999px;background:rgba(0,0,0,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);max-width:calc(100vw - 24px)}
@@ -203,6 +214,7 @@
   <div class="row">
     <button class="btn" id="copyBtn">คัดลอก</button>
     <button class="btn primary" id="closeSheet">สแกนต่อ</button>
+    <button class="btn primary" id="saveBtn">บันทึก</button><!-- 2026-10-26 09:49 โหมดสถานะ: แตะปุ่มขั้น = เลือก · ปุ่มนี้ = บันทึก -->
   </div>
 </div>
 
@@ -540,6 +552,7 @@
     $("sheetFmt").textContent = LABEL[r.format] || r.format || "โค้ด";
     $("sheetText").textContent = t;
     $("copyBtn").textContent = "คัดลอก";
+    $("sheet").classList.toggle("st", MODE === "st");   // 09:49 โหมดสถานะไม่มีปุ่มคัดลอก
     if (MODE === "st") renderLot(t);   // 2026-10-26: บาร์โค้ดชิ้นงาน → Lot + ปุ่ม Edge / Drill
     else hint3d(t);                    // โหมด 3D: บาร์โค้ดชิ้นงาน = บอกว่าสลับโหมดได้
     show("sheet");
@@ -570,6 +583,7 @@
     }
   };
   $("closeSheet").onclick = function(){
+    if (CUR && pendOf().length && !confirm("ยังไม่ได้บันทึก " + pendOf().map(function(k){ return STEP[k].h; }).join(" / ") + " ของ " + CUR.hit.lot + "\nทิ้งแล้วสแกนต่อ?")) return;   // 2026-10-26 09:49
     lastClosed = {t:shownText, at:Date.now()}; hold = false; CUR = null;   // 2026-10-26
     hide("sheet"); shownText = "";
     if (!stream && !starting && !going) boot();      // ยังไม่มีกล้องสด → กลับไปหน้าเริ่ม
@@ -845,15 +859,19 @@
     }
     return {base:base, u: f ? f.u : 0};
   }
-  async function stepSave(k, hit, undo){
+  /* 2026-10-26 09:49: บันทึกทุกขั้นที่เลือกในครั้งเดียว — want = {edge: true/false, …} (เฉพาะขั้นที่เปลี่ยน) · เดิม stepSave ทีละขั้นทุกครั้งที่แตะ */
+  async function stepSaveMany(hit, want){
     for (var t = 0; t < 5; t++) {
-      var cur = await stepsRead(), K = norm(hit.lot), e = cur.base.lots[K] || {lot:hit.lot};
-      if (!undo && e[k]) return {already:true, entry:e};
-      if (undo && !e[k]) return {entry:e};
+      var cur = await stepsRead(), K = norm(hit.lot), e = cur.base.lots[K] || {lot:hit.lot}, n = 0;
       var at = nowIso(), rec = {at:at, by:myName(), bc:hit.bc, dev:devId()};
-      if (undo) delete e[k]; else e[k] = rec;
+      Object.keys(want).forEach(function(k){
+        if (want[k] && !e[k]) e[k] = Object.assign({}, rec);
+        else if (!want[k] && e[k]) delete e[k];
+        else return;   // มีคนทำแบบเดียวกันไว้แล้ว
+        n++; cur.base.hist.unshift({t: want[k] ? "ยิง" : "ยกเลิก", step:k, lot:hit.lot, at:at, by:rec.by, bc:hit.bc, nm:hit.nm || "", dev:rec.dev});
+      });
+      if (!n) return {entry:e};
       if (e.edge || e.drill || e.site) { e.lot = hit.lot; cur.base.lots[K] = e; } else delete cur.base.lots[K];
-      cur.base.hist.unshift({t: undo ? "ยกเลิก" : "ยิง", step:k, lot:hit.lot, at:at, by:rec.by, bc:hit.bc, nm:hit.nm || "", dev:rec.dev});
       cur.base.hist = cur.base.hist.slice(0, 2000);
       var old = Date.now() - 400 * 86400000;   // Lot ที่ยิงล่าสุดเกิน 400 วัน = เอาออก (ไฟล์ไม่โตไม่หยุด)
       Object.keys(cur.base.lots).forEach(function(x){ var v = cur.base.lots[x], last = [v.edge, v.drill, v.site].filter(Boolean).map(function(s){ return Date.parse(s.at) || 0; }); if (last.length && Math.max.apply(null, last) < old) delete cur.base.lots[x]; });
@@ -866,23 +884,30 @@
     }
     throw new Error("มีคนบันทึกพร้อมกันหลายครั้ง ลองใหม่อีกที");
   }
+  function stepSave(k, hit, undo){ var w = {}; w[k] = !undo; return stepSaveMany(hit, w); }   // ชื่อเดิม (ทีละขั้น)
 
   /* ── แผงผล: Lot + ปุ่ม Edge / Drill ── */
+  /* 2026-10-26 09:49: แตะปุ่มขั้น = เลือก/ไม่เลือก (CUR.want) ยังไม่บันทึก · ต่างจากที่บันทึกไว้ = กรอบประ (ติ๊กใหม่ = เหลือง · ยกเลิก = แดง) · ปุ่ม “บันทึก (n)” */
+  function pendOf(){ if (!CUR || !CUR.want || !CUR.entry) return []; return Object.keys(STEP).filter(function(k){ return !!CUR.want[k] !== !!CUR.entry[k]; }); }
   function stepUi(){
+    var ld = !CUR || CUR.entry === undefined, busy = !!(CUR && CUR.busy);
     Object.keys(STEP).forEach(function(k){
-      var b = $(STEP[k].b), sm = b.querySelector("small"), e = CUR && CUR.entry && CUR.entry[k];
-      var busy = CUR && CUR.busy === k;
-      b.classList.toggle("done", !!e); b.classList.toggle("busy", !!busy); b.disabled = !!(CUR && CUR.busy);
-      sm.textContent = busy ? "กำลังบันทึก…" : e ? "✓ " + (k === "site" ? "ถึงแล้ว " : "เริ่มแล้ว ") + hm(e.at) + (e.by ? " · " + e.by : "")
-        : CUR && CUR.entry === undefined ? "กำลังเช็ค…" : "แตะ = " + (k === "site" ? "" : "เริ่ม") + STEP[k].th;
+      var b = $(STEP[k].b), sm = b.querySelector("small"), e = CUR && CUR.entry && CUR.entry[k], w = CUR && CUR.want ? !!CUR.want[k] : !!e, pend = !ld && w !== !!e;
+      b.classList.toggle("done", w); b.classList.toggle("pend", pend); b.classList.toggle("off", pend && !w); b.classList.toggle("busy", busy);
+      b.disabled = busy || ld;
+      sm.textContent = ld ? "กำลังเช็ค…" : pend ? (w ? "✓ จะติ๊ก — กดบันทึก" : "✕ จะยกเลิก — กดบันทึก")
+        : e ? "✓ " + (k === "site" ? "ถึงแล้ว " : "เริ่มแล้ว ") + hm(e.at) + (e.by ? " · " + e.by : "") : "แตะ = ติ๊ก";
     });
+    var n = pendOf().length, sb = $("saveBtn");
+    sb.disabled = !n || busy; sb.textContent = busy ? "กำลังบันทึก…" : n ? "บันทึก (" + n + ")" : "บันทึก";
   }
+  function wantOf(e){ var w = {}; Object.keys(STEP).forEach(function(k){ w[k] = !!(e && e[k]); }); return w; }
   function lotMsg(html){ var m = $("lotMsg"); m.hidden = !html; m.innerHTML = html || ""; }
   function dataTxt(){ return IDX.map ? "ข้อมูล Lot " + IDX.nLots.toLocaleString("th-TH") + " Lot · " + IDX.rows.toLocaleString("th-TH") + " รหัส · โหลด " + hm(IDX.at) : ""; }
   function renderLot(t){
     var hit = lookup(t);
-    CUR = hit ? {t:t, hit:hit, entry:undefined, busy:null} : null;
-    $("lotBox").hidden = !hit; $("sheet").classList.toggle("lot", !!hit);
+    CUR = hit ? {t:t, hit:hit, entry:undefined, want:null, busy:null} : null;
+    $("lotBox").hidden = !hit; $("sheet").classList.toggle("lot", !!hit); $("sheet").classList.toggle("st", MODE === "st");
     $("sheetKind").textContent = hit ? "Lot ผลิต" : "ไม่ใช่ลิงก์";
     if (hit) {
       hold = true;
@@ -890,8 +915,8 @@
       $("lotPart").textContent = [hit.nm, hit.cab].filter(Boolean).join(" · ");
       $("lotData").textContent = dataTxt(); showBy(); lotMsg(""); stepUi();
       var my = CUR;
-      stepsRead().then(function(r){ if (CUR !== my) return; my.entry = r.base.lots[norm(hit.lot)] || {}; stepUi(); })
-        .catch(function(e){ if (CUR !== my) return; my.entry = {}; stepUi(); lotMsg("เช็คสถานะไม่ได้ — " + esc(e.message)); });
+      stepsRead().then(function(r){ if (CUR !== my) return; my.entry = r.base.lots[norm(hit.lot)] || {}; my.want = wantOf(my.entry); stepUi(); })
+        .catch(function(e){ if (CUR !== my) return; my.entry = {}; my.want = wantOf(null); stepUi(); lotMsg("เช็คสถานะไม่ได้ — " + esc(e.message)); });
       return;
     }
     if (!codeLike(t) || !DRV) { lotMsg(""); return; }
@@ -908,7 +933,28 @@
   function refreshSheet(){ if (!$("sheet").hidden && shownText && !CUR) renderLot(shownText); }
   function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
 
-  async function onStep(k){
+  /* 2026-10-26 09:49: แตะ = เลือก/ไม่เลือก (เดิม: แตะ = บันทึกทันที · แตะซ้ำ = ถามแล้วยกเลิก — โค้ดเดิมอยู่ใน onStepNow) */
+  function onStep(k){
+    if (!CUR || CUR.busy || CUR.entry === undefined || !CUR.want) return;
+    CUR.want[k] = !CUR.want[k]; lotMsg(""); stepUi();
+  }
+  async function onSave(){
+    if (!CUR || CUR.busy) return;
+    var my = CUR, hit = my.hit, ch = pendOf(); if (!ch.length) return;
+    if (ch.some(function(k){ return my.want[k]; }) && !lsGet(BY_ASKED)) askName();
+    var want = {}; ch.forEach(function(k){ want[k] = !!my.want[k]; });
+    my.busy = "save"; stepUi();
+    try {
+      var r = await stepSaveMany(hit, want);
+      my.entry = r.entry || {}; my.want = wantOf(my.entry);
+      toast("✓ บันทึกแล้ว · " + hit.lot + " — " + ch.map(function(k){ return STEP[k].h + (want[k] ? " ✓" : " ✕"); }).join(" · "));
+      if (navigator.vibrate) try { navigator.vibrate(60); } catch (x) {}
+    } catch (x) {
+      console.warn(x);
+      lotMsg("บันทึกไม่สำเร็จ — " + esc(x.message) + " · กดบันทึกอีกครั้ง");
+    } finally { my.busy = null; if (CUR === my) stepUi(); }
+  }
+  async function onStepNow(k){
     if (!CUR || CUR.busy) return;
     var my = CUR, hit = my.hit, e = my.entry && my.entry[k];
     if (e && !confirm("ยกเลิก “" + STEP[k].h + " (" + STEP[k].th + ")” ของ Lot " + hit.lot + " ?\n(เริ่มไว้ " + hm(e.at) + (e.by ? " โดย " + e.by : "") + ")")) return;
@@ -928,6 +974,7 @@
   $("stepEdge").onclick = function(){ onStep("edge"); };
   $("stepDrill").onclick = function(){ onStep("drill"); };
   $("stepSite").onclick = function(){ onStep("site"); };
+  $("saveBtn").onclick = function(){ onSave(); };
   $("byBtn").onclick = function(){ askName(); };
   $("lotName").onclick = function(){
     var t = $("lotName").textContent; if (!t) return;

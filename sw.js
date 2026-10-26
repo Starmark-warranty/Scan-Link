@@ -1,7 +1,7 @@
 // Service worker ของแอปสแกน: ทำให้ติดตั้งได้ + เปิดเร็วขึ้น
 // หน้าแอป = ดึงจากเน็ตก่อน (ได้เวอร์ชันใหม่เสมอ) ไม่มีเน็ตค่อยใช้ของที่เก็บไว้
 // ตัวอ่านโค้ด (zxing จาก jsdelivr, เวอร์ชันล็อกไว้) = ใช้ของที่เก็บไว้ก่อน
-const CACHE = "scanlink-v11";   // 2026-10-26: Lot ผลิต Edge / Drill · v8 เลือกโหมด 3D / สถานะ · v9 หา Lot จาก Code Part · v10 ไม่เจอ = ตรวจข้อมูลใหม่ · v11 + Site
+const CACHE = "scanlink-v12";   // 2026-10-26: Lot ผลิต Edge / Drill · v8 เลือกโหมด 3D / สถานะ · v9 หา Lot จาก Code Part · v10 ไม่เจอ = ตรวจข้อมูลใหม่ · v11 + Site · v12 แตะเลือก + ปุ่มบันทึก
 const SHELL = ["./", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-180.png", "./qr-link.png"];
 const LIB = "https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.5/";
 const WASM = "https://fastly.jsdelivr.net/npm/zxing-wasm@3.1.5/";

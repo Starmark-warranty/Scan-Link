@@ -188,6 +188,7 @@
   #lot3d{width:100%;height:46px;margin:0 0 12px;border-radius:14px;background:var(--ok);color:#06210f;font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:6px}
   #lot3d.no3d{background:rgba(255,255,255,.14);color:var(--muted)}
   #lot3d[hidden]{display:none}
+  #lotFin{margin:-8px 0 12px;font-size:14px;font-weight:700;color:#5eead4} #lotFin.none{color:var(--muted);font-weight:600}   /* 08:39 */
   .stepbtns .step[hidden]{display:none}   /* 2026-10-27 07:51 ปุ่มสี / เคลือบ เฉพาะชิ้นที่เป็นงานนั้น */
   #sheet.st:not(.lot):not(.pack) #copyBtn{display:inline-flex}   /* โค้ดที่ไม่ใช่ชิ้นงาน/ห่อ = คัดลอกได้เหมือนเดิม */
   /* ───────── 2026-10-26 17:02: ยิงบาร์โค้ด Pack → รายการชิ้นใน Pack → แตะชิ้น = ดู 3D ───────── */
@@ -268,6 +269,7 @@
   <div id="lotBox" hidden>
     <div id="lotName" title="แตะ = คัดลอกชื่อ Lot"></div>
     <div id="lotPart"></div>
+    <div id="lotFin" hidden></div><!-- 2026-10-27 08:39 Lot นี้มีงานเคลือบ / ทำสีกี่ชิ้น -->
     <button id="lot3d" hidden>🧊 ดู 3D ชิ้นนี้</button><!-- 2026-10-27 07:38 ยิงสติกเกอร์ชิ้นงาน = สถานะ + ดู 3D ได้ในแผงเดียว -->
     <div class="stepbtns">
       <button class="step" id="stepEdge"><b>Edge</b><span>ปิดขอบ</span><small></small></button>
@@ -395,7 +397,7 @@
   /* 2026-10-27 08:26 ผู้ใช้: “เพิ่ม version ตัวแอพสแกนให้ทีจะได้รู้ว่าคนที่ใช้อยู่เวอร์ชั่นไหน”
      → รุ่นแอป = เลขเดียวกับ cache ของ sw.js (scanlink-vNN) — แก้แอปครั้งไหน บวกทั้งสองที่ (APP_VER + CACHE)
        · โชว์หลังชื่อแอปบนหัวจอ · จดลงทุกการบันทึก (steps.json: ยิงขั้น / ตรวจห่อ / hist ช่อง v) — StarStock ดูได้ว่าใครใช้รุ่นไหน */
-  var APP_VER = "v23";
+  var APP_VER = "v24";   // v24 = 2026-10-27 08:39 จำนวนชิ้นสี/เคลือบของ Lot · ชิ้นสี/เคลือบไม่มีปุ่ม Edge
   var FORMATS = ["DataMatrix","QRCode","Code128"];
   var LABEL = {DataMatrix:"Data Matrix",QRCode:"QR Code",Code128:"Code 128"};
   var LIVE_OPTS = {formats:FORMATS, tryHarder:true, tryRotate:true, tryInvert:false, tryDownscale:true, maxNumberOfSymbols:4};
@@ -818,7 +820,7 @@
   var STEP = {edge:{h:"Edge", th:"ปิดขอบ", b:"stepEdge"}, paint:{h:"สี", th:"รับเข้าทำสี", b:"stepPaint", rx:1}, coat:{h:"เคลือบ", th:"รับเข้าเคลือบ", b:"stepCoat", rx:1},
               drill:{h:"Drill", th:"เจาะ", b:"stepDrill"}, site:{h:"Site", th:"ถึงไซต์", b:"stepSite"}};
   var BY_KEY = "scanlink_by", BY_ASKED = "scanlink_by_asked", DEV_KEY = "scanlink_dev";
-  var IDX_FV = 8;   // 2026-10-27 08:20: 8 = + RecId ของชิ้นในห่อ (ล้างที่ ADMIN แก้ช่อง Site)   // 2026-10-27 07:51: 7 = + รหัสไม้ (mat) ราย entry (ชิ้นสี 34N / ชิ้นเคลือบผิวดิบ)   // 2026-10-27 07:38: 6 = + Code Part / Barcode / OrderNumber / Product Article ราย entry (ปุ่ม 3D ในแผง Lot)            // รูปแบบดัชนีที่จำในเครื่อง: 2 = Code Part + Barcode · 3 = + Proj Name ราย Lot · 4 = + Code Pack รายชิ้น (2026-10-26 17:02) · 5 = + OrderNumber รายชิ้น (17:38) (เปลี่ยนเลข = สร้างใหม่ทุกเครื่อง)
+  var IDX_FV = 9;   // 2026-10-27 08:39: 9 = + รายชิ้นทุกแถว (lr: Lot · Barcode · Code Part · รหัสไม้) นับชิ้นสี/เคลือบของ Lot   // 2026-10-27 08:20: 8 = + RecId ของชิ้นในห่อ (ล้างที่ ADMIN แก้ช่อง Site)   // 2026-10-27 07:51: 7 = + รหัสไม้ (mat) ราย entry (ชิ้นสี 34N / ชิ้นเคลือบผิวดิบ)   // 2026-10-27 07:38: 6 = + Code Part / Barcode / OrderNumber / Product Article ราย entry (ปุ่ม 3D ในแผง Lot)            // รูปแบบดัชนีที่จำในเครื่อง: 2 = Code Part + Barcode · 3 = + Proj Name ราย Lot · 4 = + Code Pack รายชิ้น (2026-10-26 17:02) · 5 = + OrderNumber รายชิ้น (17:38) (เปลี่ยนเลข = สร้างใหม่ทุกเครื่อง)
   var IDX = {map:null, lots:null, nm:null, cab:null, u:0, at:"", rows:0, nLots:0, loading:null, checked:0, err:null, info:null};
   var CUR = null;            // แผงที่เปิดอยู่: {t, hit, entry, busy}
   var hold = false;          // เจอ Lot แล้ว = หยุดสแกนจนกว่าจะกด “สแกนต่อ”
@@ -923,7 +925,7 @@
     var iK = h.indexOf("pack"), iS = h.indexOf("sz"), iX = h.indexOf("l"), iY = h.indexOf("w"), iA = h.indexOf("art"), iO = h.indexOf("ord");   // 17:38 + ord (OrderNumber · StarSync v1.17)
     var pk = [], pkIx = {}, pr = {k:[], li:[], cp:[], bc:[], nm:[], cab:[], l:[], w:[], sz:[], od:[], rc:[]}, iR = h.indexOf("rec");   // 08:20 + rc (RecId)
     if (iL < 0 || (iB < 0 && iP < 0)) throw new Error("ไฟล์ " + INFO_F + " ไม่มีช่อง lot / cpt / bc1");
-    var eP = [], eB = [], eO = [], eA = [], eM = [], iM = h.indexOf("mat");   // 07:51 + eM รหัสไม้   // 2026-10-27 07:38 ราย entry: Code Part · Barcode · OrderNumber · Product Article
+    var eP = [], eB = [], eO = [], eA = [], eM = [], iM = h.indexOf("mat"), lr = {li:[], b:[], c:[], m:[]};   // 08:39 + lr ทุกแถว   // 07:51 + eM รหัสไม้   // 2026-10-27 07:38 ราย entry: Code Part · Barcode · OrderNumber · Product Article
     var bcs = [], li = [], nm = [], cab = [], lots = [], lotIx = {}, pv = {L:"", N:"", C:"", B:"", P:"", J:"", K:"", S:"", X:"", Y:"", A:"", O:"", M:""};
     var val = function(v, k){ v = v == null ? "" : v; if (v === "^") return pv[k]; if (v.charAt(0) === "=") v = v.slice(1); pv[k] = v; return v; };
     for (var r = 1; r < lines.length; r++) {
@@ -931,6 +933,7 @@
       while ((ln.split('"').length - 1) % 2 && r + 1 < lines.length) ln += "\n" + lines[++r];   // ค่าที่มีขึ้นบรรทัดใหม่
       var a = csvLine(ln), L = val(a[iL], "L"), N = iN >= 0 ? val(a[iN], "N") : "", C = iC >= 0 ? val(a[iC], "C") : "", B = iB >= 0 ? val(a[iB], "B") : "", P = iP >= 0 ? val(a[iP], "P") : "";
       var M = iM >= 0 ? val(a[iM], "M") : "";   // 07:51 รหัสไม้ (^ = แถวบน)
+      if (L) { var lx = lotIx[L]; if (lx == null) { lx = lotIx[L] = lots.length; lots.push(L); lp.push(""); } lr.li.push(lx); lr.b.push(String(B || "").trim()); lr.c.push(String(P || "").trim()); lr.m.push(M); }   // 08:39 (ลำดับ Lot เหมือนข้างล่าง)
       var K = iK >= 0 ? val(a[iK], "K") : "", S = iS >= 0 ? val(a[iS], "S") : "", X = iX >= 0 ? val(a[iX], "X") : "", Y = iY >= 0 ? val(a[iY], "Y") : "", A = iA >= 0 ? val(a[iA], "A") : "", O = iO >= 0 ? val(a[iO], "O") : "";   // 17:02 อ่านทุกแถว (^ = แถวบน) · 17:38 + O
       if (!L) continue;
       var ix = lotIx[L]; if (ix == null) { ix = lotIx[L] = lots.length; lots.push(L); lp.push(""); }
@@ -940,7 +943,7 @@
       if (kk && kk !== "MANUAL") { var pi = pkIx[kk]; if (pi == null) { pi = pkIx[kk] = pk.length; pk.push(kk); }
         pr.k.push(pi); pr.li.push(ix); pr.cp.push(String(P || "").trim()); pr.bc.push(String(B || "").trim()); pr.nm.push(N); pr.cab.push(A || C); pr.l.push(X); pr.w.push(Y); pr.sz.push(S); pr.od.push(String(O || "").trim()); pr.rc.push(iR >= 0 ? String(a[iR] || "").trim() : ""); }
     }
-    return {bcs:bcs, li:li, nm:nm, cab:cab, lots:lots, lp:lp, cp: iP >= 0, pk:pk, pr:pr, eP:eP, eB:eB, eO:eO, eA:eA, eM:eM, fv: IDX_FV};
+    return {bcs:bcs, li:li, nm:nm, cab:cab, lots:lots, lp:lp, cp: iP >= 0, pk:pk, pr:pr, eP:eP, eB:eB, eO:eO, eA:eA, eM:eM, lr:lr, fv: IDX_FV};
   }
   function useIndex(d){
     var m = new Map();
@@ -1020,7 +1023,20 @@
     FS.m = d.m; FS.lots = d.lots; FS.u = rf.u; idbPut("fstyle", {m:d.m, lots:d.lots, u:rf.u});
     if (CUR && CUR.hit) { CUR.fk = finKind(CUR.hit); stepUi(); lotPartTxt(); }
   }
-  function lotPartTxt(){ if (!CUR || !CUR.hit) return; var hit = CUR.hit; $("lotPart").textContent = [hit.nm, hit.pj || hit.cab, CUR.fk === "paint" ? "🎨 งานทำสี" : CUR.fk === "coat" ? "✨ งานเคลือบ" : ""].filter(Boolean).join(" · "); }   // 09:55 Proj Name แทนชื่อตู้ · 07:51 + ชนิด
+  function lotPartTxt(){ if (!CUR || !CUR.hit) return; var hit = CUR.hit; $("lotPart").textContent = [hit.nm, hit.pj || hit.cab, CUR.fk === "paint" ? "🎨 ชิ้นนี้ทำสี" : CUR.fk === "coat" ? "✨ ชิ้นนี้เคลือบ" : ""].filter(Boolean).join(" · "); lotFinTxt(); }
+  /* 2026-10-27 08:39 ผู้ใช้: “เคลือบพอสแกนมันจะขึ้นไหมครับ ว่า Lot นี้มีงานเคลือบกี่ชิ้น … ถ้างานไหนไม่มีสี / เคลือบก็ให้ขึ้นบอกไปเลย” → บรรทัดใต้ชื่อชิ้น */
+  function lotFinCnt(lot){
+    var d = IDX.data, o = {paint:0, coat:0}; if (!d || !d.lr) return null;
+    var li = d.lots.indexOf(lot); if (li < 0) return o;
+    for (var i = 0; i < d.lr.li.length; i++) if (d.lr.li[i] === li) { var k = finKind({lot:lot, b1:d.lr.b[i], cp:d.lr.c[i], mat:d.lr.m[i]}); if (k) o[k]++; }
+    return o;
+  }
+  function lotFinTxt(){
+    var el = $("lotFin"); if (!el) return; if (!CUR || !CUR.hit || !FS.m) { el.hidden = true; return; }
+    var c = lotFinCnt(CUR.hit.lot); if (!c) { el.hidden = true; return; }
+    el.hidden = false; el.className = c.paint || c.coat ? "" : "none";
+    el.textContent = c.paint || c.coat ? "Lot นี้มี " + [c.coat ? "✨ งานเคลือบ " + c.coat + " ชิ้น" : "", c.paint ? "🎨 งานทำสี " + c.paint + " ชิ้น" : ""].filter(Boolean).join(" · ") + " (ไม่ปิดขอบ)" : "Lot นี้ไม่มีงานสี / เคลือบ";
+  }   // 09:55 Proj Name แทนชื่อตู้ · 07:51 + ชนิด
   /* ชนิดของชิ้น: "paint" · "coat" · "" (ไม่ต้อง) · null = ยังไม่รู้ (ยังไม่มี fstyle.csv) */
   function finKind(hit){
     if (!hit) return null;
@@ -1106,7 +1122,7 @@
     var ld = !CUR || CUR.entry === undefined, busy = !!(CUR && CUR.busy);
     Object.keys(STEP).forEach(function(k){
       var b = $(STEP[k].b), sm = b.querySelector("small"), e = CUR && CUR.entry && CUR.entry[k], w = CUR && CUR.want ? !!CUR.want[k] : !!e, pend = !ld && w !== !!e;
-      b.hidden = !!(STEP[k].rx && CUR && CUR.fk != null && CUR.fk !== k);   // 2026-10-27 07:51 ปุ่มสี / เคลือบ เฉพาะชิ้นชนิดนั้น (ยังไม่รู้ = ขึ้นทั้งคู่)
+      b.hidden = !!(STEP[k].rx && CUR && CUR.fk != null && CUR.fk !== k) || !!(k === "edge" && CUR && CUR.fk);   // 08:39 ชิ้นสี / เคลือบ ไม่ปิดขอบ = ไม่มีปุ่ม Edge   // 2026-10-27 07:51 ปุ่มสี / เคลือบ เฉพาะชิ้นชนิดนั้น (ยังไม่รู้ = ขึ้นทั้งคู่)
       b.classList.toggle("done", w); b.classList.toggle("pend", pend); b.classList.toggle("off", pend && !w); b.classList.toggle("busy", busy);
       b.disabled = busy || ld;
       sm.textContent = ld ? "กำลังเช็ค…" : pend ? (w ? "✓ จะติ๊ก — กดบันทึก" : "✕ จะยกเลิก — กดบันทึก")

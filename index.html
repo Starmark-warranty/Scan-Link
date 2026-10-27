@@ -179,8 +179,14 @@
   #modeBar button.on[data-mode="st"]{background:var(--ok);color:#06210f}
   body.mode-st #box{width:min(88vw,430px);aspect-ratio:2.4/1}
   body.mode-st #hint{top:calc(44% + min(88vw,430px)/4.8 + 18px)}
-  #toast{top:calc(var(--safe-t) + 116px)}
-  #tap,#err{padding-top:calc(var(--safe-t) + 120px)!important}   /* เว้นที่ให้แถบเลือกโหมด */
+  /* 2026-10-27 07:38 ผู้ใช้: “ปุ่ม 3D กับสถานะ ถ้าไม่มี แต่ให้มันรู้เองได้ปะ” → เลิกแถบเลือกโหมด (แอปดูเองจากโค้ดที่ยิง) · เดิม: toast top +116 · #tap/#err เว้น +120 ให้แถบ */
+  #modeBar{display:none!important}
+  body.mode-st #box{width:min(88vw,430px);aspect-ratio:2/1}   /* 07:38 กรอบเดียวรับทั้งบาร์โค้ดเส้นและ Data Matrix / QR (เดิมโหมดสถานะ 2.4:1) */
+  body.mode-st #hint{top:calc(44% + min(88vw,430px)/4 + 18px)}
+  #lot3d{width:100%;height:46px;margin:0 0 12px;border-radius:14px;background:var(--ok);color:#06210f;font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:6px}
+  #lot3d.no3d{background:rgba(255,255,255,.14);color:var(--muted)}
+  #lot3d[hidden]{display:none}
+  #sheet.st:not(.lot):not(.pack) #copyBtn{display:inline-flex}   /* โค้ดที่ไม่ใช่ชิ้นงาน/ห่อ = คัดลอกได้เหมือนเดิม */
   /* ───────── 2026-10-26 17:02: ยิงบาร์โค้ด Pack → รายการชิ้นใน Pack → แตะชิ้น = ดู 3D ───────── */
   #packBox{margin:0 0 10px}
   #packHead{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
@@ -229,7 +235,7 @@
   /* ───────── 2026-10-26 19:37 ผู้ใช้ (รูปแผงห่อ: แถบ “ดู 3D / สถานะ” บังเลขห่อ + ตู้ · Lot · ชื่อโครงการ): “หน้าแสกน ผมมองไม่เห็นชื่อ order เลย ตัวเลือกระหว่าง 3D บัง”
      เดิม: แผงห่อสูงตามรายการ (รายการสูงสุด 100vh − 400px) + แถบสถานะ/ติ๊กทั้งห่อ (18:23) = ยอดแผงขึ้นไปใต้หัวแอป + แถบเลือกโหมด
      ตอนนี้: แผงห่อสูงไม่เกินจอ − หัวแอป − แถบเลือกโหมด (ยอดแผงอยู่ใต้แถบเสมอ) · รายการชิ้นเลื่อนในตัวเอง ───────── */
-  #sheet.pack:not([hidden]){display:flex;flex-direction:column;max-height:calc(100vh - var(--safe-t) - var(--safe-b) - 206px);max-height:calc(100dvh - var(--safe-t) - var(--safe-b) - 206px)}
+  #sheet.pack:not([hidden]){display:flex;flex-direction:column;max-height:calc(100vh - var(--safe-t) - var(--safe-b) - 156px);max-height:calc(100dvh - var(--safe-t) - var(--safe-b) - 156px)}   /* 07:38 ไม่มีแถบโหมดแล้ว = สูงได้ถึงใต้หัวแอป (เดิม −206px) */
   #sheet.pack #packBox:not([hidden]){display:flex;flex-direction:column;flex:1 1 auto;min-height:0}
   #sheet.pack #packList{flex:1 1 auto;min-height:96px;max-height:none}
   #sheet.pack .row{flex:none}
@@ -240,7 +246,7 @@
 <div id="stage">
   <video id="video" playsinline muted autoplay></video>
   <div id="box"><i></i><i></i><i></i><i></i><div id="laser"></div></div>
-  <div id="hint">เล็ง Data Matrix / QR / Barcode ให้อยู่ในกรอบ</div>
+  <div id="hint">เล็งบาร์โค้ด / QR / Data Matrix ให้อยู่ในกรอบ</div>
 </div>
 
 <header>
@@ -259,6 +265,7 @@
   <div id="lotBox" hidden>
     <div id="lotName" title="แตะ = คัดลอกชื่อ Lot"></div>
     <div id="lotPart"></div>
+    <button id="lot3d" hidden>🧊 ดู 3D ชิ้นนี้</button><!-- 2026-10-27 07:38 ยิงสติกเกอร์ชิ้นงาน = สถานะ + ดู 3D ได้ในแผงเดียว -->
     <div class="stepbtns">
       <button class="step" id="stepEdge"><b>Edge</b><span>ปิดขอบ</span><small></small></button>
       <button class="step" id="stepPaint"><b>สี</b><span>รับเข้าทำสี</span><small></small></button>
@@ -563,7 +570,7 @@
       if (video.readyState >= 2 && video.videoWidth) {
         var t0 = performance.now();
         try {
-          var res = await ZXingWASM.readBarcodes(grabFrame(), MODE === "st" ? LIVE_OPTS_ST : LIVE_OPTS);
+          var res = await ZXingWASM.readBarcodes(grabFrame(), LIVE_OPTS_ST);   // 2026-10-27 07:38 โหมดเดียว = อ่านทุกแบบ (เดิม 3D: Data Matrix / QR / Code128)
           if (my !== token) return;
           handle(res, true);
         } catch (e) { console.warn(e); }
@@ -579,10 +586,23 @@
     if (!ok.length) return false;
     /* 2026-10-26 (ผู้ใช้ 08:58 เลือก “3D / สถานะ”): เดิม (รุ่นเช้า) แอปเดาเอง = บาร์โค้ดชิ้นงานชนะลิงก์ → คนจะดู 3D ได้แผง Edge/Drill แทน
        ตอนนี้ แยกตามโหมดที่เลือก · โหมดสถานะ: ไม่เปิดลิงก์เลย ใช้แต่โค้ดที่ไม่ใช่ลิงก์ · โหมด 3D: แบบเดิมก่อนมี Edge/Drill */
+    /* ───────── 2026-10-27 07:38 ผู้ใช้ (รูปสติกเกอร์ชิ้นงาน PD69000045189-P50 + ใบปะห่อ PD69000045189-PD06_2): “ปุ่ม 3D กับสถานะ ถ้าไม่มี แต่ให้มันรู้เองได้ปะ
+         บาร์ Part ใช้ยิงเพื่อเก็บสถานะ แต่ก็มีคนยิงเพื่อดู 3D แต่เราก็สร้างปุ่ม 3D อยู่แล้ว … สแกนบาร์ก็ดูกับลงสถานะได้ · บาร์แพ็ค สแกนดูก็รู้ว่าตู้ไหน มี 3D ให้ดู” ─────────
+       เดิม (26/10 08:58): เลือกโหมดก่อน — 3D = เปิดลิงก์ · สถานะ = ไม่เปิดลิงก์ ใช้แต่บาร์โค้ด
+       ตอนนี้ (โหมดเดียว · ทำแบบโหมดสถานะเดิมทุกอย่าง + เปิดลิงก์ได้):
+         ① บาร์โค้ดที่อยู่ในรายการ (Code Part / Barcode / Code Pack) = แผง Lot (ปุ่มสถานะ + 🧊 ดู 3D ชิ้นนี้) / แผงห่อ (ติ๊กตรวจรับ + 3D รายชิ้น) — ชนะลิงก์ในภาพเดียวกัน
+         ② ลิงก์ (Data Matrix / QR) = เปิด — สแกนสดต้องเห็นลิงก์เดิมต่อเนื่อง ~0.35 วิ ก่อนเปิด (ให้บาร์โค้ดข้าง ๆ บนสติกเกอร์อ่านทันก่อน)
+         ③ โค้ดอื่น = แผงข้อความ (คัดลอกได้) + บอกว่าไม่พบใน Lot ผลิต */
     if (MODE === "st") {
       onlyLink = false;
-      var codes = ok.filter(function(r){ return !toUrl(r.text); });
-      if (!codes.length) { onlyLink = true; return false; }               // เห็นแต่ Data Matrix ลิงก์ (3D) = ไม่เปิด อ่านต่อ
+      var codes = ok.filter(function(r){ return !toUrl(r.text); }), links = ok.filter(function(r){ return !!toUrl(r.text); });
+      for (var j0 = 0; j0 < codes.length; j0++) if (lookup(codes[j0].text) || packLookup(codes[j0].text)) { linkSeen = {u:"", at:0}; showText(codes[j0], live); return true; }   // ①
+      if (links.length) {   // ②
+        var u0 = toUrl(links[0].text), n0 = Date.now();
+        if (live) { if (linkSeen.u !== u0 || n0 - linkSeen.last > 600) { linkSeen = {u:u0, at:n0, last:n0}; return false; } linkSeen.last = n0; if (n0 - linkSeen.at < 350) return false; }
+        linkSeen = {u:"", at:0}; go(u0); return true;
+      }
+      if (!codes.length) { onlyLink = true; return false; }
       for (var j = 0; j < codes.length; j++) if (lookup(codes[j].text) || packLookup(codes[j].text)) { showText(codes[j], live); return true; }   // 2026-10-26 17:02 + Code Pack
       /* ไม่อยู่ในรายการ: สแกนสดต้องอ่านได้ค่าเดิม 2 ครั้งติดกันก่อน (กันอ่านเพี้ยนแล้วเด้ง “ไม่พบ”) · ข้อมูลยังโหลดไม่เสร็จ = รอ */
       if (live) {
@@ -674,7 +694,7 @@
       var side = Math.max(img.width, img.height);
       if (side <= last) break;                      // รูปเล็กกว่าขนาดนี้แล้ว ไม่ต้องอ่านซ้ำ
       last = side;
-      var res = (await ZXingWASM.readBarcodes(img, MODE === "st" ? PHOTO_OPTS_ST : PHOTO_OPTS) || []).filter(function(r){ return r.isValid && r.text; });
+      var res = (await ZXingWASM.readBarcodes(img, PHOTO_OPTS_ST) || []).filter(function(r){ return r.isValid && r.text; });   // 07:38 โหมดเดียว
       if (res.some(function(r){ return toUrl(r.text); })) return res;
       if (res.length > best.length) best = res;
     }
@@ -691,7 +711,7 @@
     try {
       await loadLib();
       found = handle(await decodeFile(f));
-      if (!found && MODE === "st" && onlyLink) alert("โหมดสถานะ: ในรูปมีแต่ Data Matrix / QR ที่เป็นลิงก์ (3D)\nถ่ายให้เห็นบาร์โค้ดเส้นของชิ้นงาน หรือสลับเป็นโหมด 🧊 ดู 3D");
+      if (false /* 07:38 โหมดเดียว เปิดลิงก์ได้แล้ว — เดิม: !found && MODE === "st" && onlyLink */) alert("โหมดสถานะ: ในรูปมีแต่ Data Matrix / QR ที่เป็นลิงก์ (3D)\nถ่ายให้เห็นบาร์โค้ดเส้นของชิ้นงาน หรือสลับเป็นโหมด 🧊 ดู 3D");
       else if (!found) alert(fromGallery
         ? "ไม่พบโค้ดในรูปนี้\nเลือกรูปที่เห็นโค้ดชัด ๆ ไม่เบลอ (ซูมเข้าใกล้โค้ดได้ยิ่งดี)"
         : "ไม่พบโค้ดในรูป\nลองถ่ายใหม่ให้ใกล้ขึ้นและไม่เบลอ");
@@ -767,7 +787,7 @@
   var STEP = {edge:{h:"Edge", th:"ปิดขอบ", b:"stepEdge"}, paint:{h:"สี", th:"รับเข้าทำสี", b:"stepPaint", rx:1}, coat:{h:"เคลือบ", th:"รับเข้าเคลือบ", b:"stepCoat", rx:1},
               drill:{h:"Drill", th:"เจาะ", b:"stepDrill"}, site:{h:"Site", th:"ถึงไซต์", b:"stepSite"}};
   var BY_KEY = "scanlink_by", BY_ASKED = "scanlink_by_asked", DEV_KEY = "scanlink_dev";
-  var IDX_FV = 5;            // รูปแบบดัชนีที่จำในเครื่อง: 2 = Code Part + Barcode · 3 = + Proj Name ราย Lot · 4 = + Code Pack รายชิ้น (2026-10-26 17:02) · 5 = + OrderNumber รายชิ้น (17:38) (เปลี่ยนเลข = สร้างใหม่ทุกเครื่อง)
+  var IDX_FV = 6;   // 2026-10-27 07:38: 6 = + Code Part / Barcode / OrderNumber / Product Article ราย entry (ปุ่ม 3D ในแผง Lot)            // รูปแบบดัชนีที่จำในเครื่อง: 2 = Code Part + Barcode · 3 = + Proj Name ราย Lot · 4 = + Code Pack รายชิ้น (2026-10-26 17:02) · 5 = + OrderNumber รายชิ้น (17:38) (เปลี่ยนเลข = สร้างใหม่ทุกเครื่อง)
   var IDX = {map:null, lots:null, nm:null, cab:null, u:0, at:"", rows:0, nLots:0, loading:null, checked:0, err:null, info:null};
   var CUR = null;            // แผงที่เปิดอยู่: {t, hit, entry, busy}
   var hold = false;          // เจอ Lot แล้ว = หยุดสแกนจนกว่าจะกด “สแกนต่อ”
@@ -872,6 +892,7 @@
     var iK = h.indexOf("pack"), iS = h.indexOf("sz"), iX = h.indexOf("l"), iY = h.indexOf("w"), iA = h.indexOf("art"), iO = h.indexOf("ord");   // 17:38 + ord (OrderNumber · StarSync v1.17)
     var pk = [], pkIx = {}, pr = {k:[], li:[], cp:[], bc:[], nm:[], cab:[], l:[], w:[], sz:[], od:[]};
     if (iL < 0 || (iB < 0 && iP < 0)) throw new Error("ไฟล์ " + INFO_F + " ไม่มีช่อง lot / cpt / bc1");
+    var eP = [], eB = [], eO = [], eA = [];   // 2026-10-27 07:38 ราย entry: Code Part · Barcode · OrderNumber · Product Article
     var bcs = [], li = [], nm = [], cab = [], lots = [], lotIx = {}, pv = {L:"", N:"", C:"", B:"", P:"", J:"", K:"", S:"", X:"", Y:"", A:"", O:""};
     var val = function(v, k){ v = v == null ? "" : v; if (v === "^") return pv[k]; if (v.charAt(0) === "=") v = v.slice(1); pv[k] = v; return v; };
     for (var r = 1; r < lines.length; r++) {
@@ -882,12 +903,12 @@
       if (!L) continue;
       var ix = lotIx[L]; if (ix == null) { ix = lotIx[L] = lots.length; lots.push(L); lp.push(""); }
       if (iJ >= 0 && !lp[ix]) { var J = val(a[iJ], "J"); if (J) lp[ix] = J; } else if (iJ >= 0) val(a[iJ], "J");   // ^ ต้องอ่านทุกแถว (ซ้ำแถวบน)
-      [P, B].forEach(function(v){ var k = String(v || "").trim().toUpperCase(); if (!k || k === "MANUAL") return; bcs.push(k); li.push(ix); nm.push(N); cab.push(C); });
+      [P, B].forEach(function(v){ var k = String(v || "").trim().toUpperCase(); if (!k || k === "MANUAL") return; bcs.push(k); li.push(ix); nm.push(N); cab.push(C); eP.push(String(P || "").trim()); eB.push(String(B || "").trim()); eO.push(String(O || "").trim()); eA.push(A); });   // 07:38 + eP/eB/eO/eA
       var kk = String(K || "").trim().toUpperCase();   // 17:02 ชิ้นนี้อยู่ Pack ไหน
       if (kk && kk !== "MANUAL") { var pi = pkIx[kk]; if (pi == null) { pi = pkIx[kk] = pk.length; pk.push(kk); }
         pr.k.push(pi); pr.li.push(ix); pr.cp.push(String(P || "").trim()); pr.bc.push(String(B || "").trim()); pr.nm.push(N); pr.cab.push(A || C); pr.l.push(X); pr.w.push(Y); pr.sz.push(S); pr.od.push(String(O || "").trim()); }
     }
-    return {bcs:bcs, li:li, nm:nm, cab:cab, lots:lots, lp:lp, cp: iP >= 0, pk:pk, pr:pr, fv: IDX_FV};
+    return {bcs:bcs, li:li, nm:nm, cab:cab, lots:lots, lp:lp, cp: iP >= 0, pk:pk, pr:pr, eP:eP, eB:eB, eO:eO, eA:eA, fv: IDX_FV};
   }
   function useIndex(d){
     var m = new Map();
@@ -940,7 +961,8 @@
     if (i == null && /[^0-9A-Z]/.test(k)) i = IDX.map.get(k.replace(/[^0-9A-Z]/g, ""));   // *123* / ช่องว่าง / ขีด
     if (i == null) return null;
     var d = IDX.data;
-    return {bc:d.bcs[i], lot:d.lots[d.li[i]], nm:d.nm[i], cab:d.cab[i], pj: d.lp ? d.lp[d.li[i]] || "" : ""};
+    return {bc:d.bcs[i], lot:d.lots[d.li[i]], nm:d.nm[i], cab:d.cab[i], pj: d.lp ? d.lp[d.li[i]] || "" : "",
+      cp: d.eP ? d.eP[i] : "", b1: d.eB ? d.eB[i] : "", od: d.eO ? d.eO[i] : "", art: d.eA ? d.eA[i] : ""};   // 07:38 ไว้หา 3D ของชิ้น
   }
   function codeLike(t){ t = String(t || "").trim(); return t.length >= 6 && t.length <= 40 && !/\s/.test(t); }
 
@@ -1016,12 +1038,13 @@
       /* 2026-10-26 09:55 ผู้ใช้: “แสดง Proj Name แทนชื่อตู้” · “เอาที่แสดงข้อมูลกี่ Lot กี่รหัสออก” (เดิม: ชื่อ Part · ชื่อตู้ + บรรทัด “ข้อมูล Lot n Lot · n รหัส · โหลด”)
          ข้อมูลเก่า (ไม่มี Proj Name) = ชื่อตู้แทน */
       $("lotPart").textContent = [hit.nm, hit.pj || hit.cab].filter(Boolean).join(" · ");
-      $("lotData").textContent = ""; showBy(); lotMsg(""); stepUi();
+      $("lotData").textContent = ""; showBy(); lotMsg(""); stepUi(); lot3dUi(hit);   // 07:38 + ปุ่ม 3D
       var my = CUR;
       stepsRead().then(function(r){ if (CUR !== my) return; my.entry = r.base.lots[norm(hit.lot)] || {}; my.want = wantOf(my.entry); stepUi(); })
         .catch(function(e){ if (CUR !== my) return; my.entry = {}; my.want = wantOf(null); stepUi(); lotMsg("เช็คสถานะไม่ได้ — " + esc(e.message)); });
       return;
     }
+    $("lot3d").hidden = true;   // 07:38
     if (!codeLike(t) || !DRV) { lotMsg(""); return; }
     if (!IDX.map && (IDX.loading || !IDX.err)) lotMsg("⏳ กำลังโหลดข้อมูล Lot ผลิต… (ครั้งแรกอาจนานสักครู่)");
     else if (!IDX.map) lotMsg("โหลดข้อมูล Lot ผลิตไม่ได้ — " + esc(IDX.err.message) + " <button class='link' id='idxRetry'>ลองใหม่</button>");
@@ -1077,6 +1100,20 @@
       lotMsg("บันทึกไม่สำเร็จ — " + esc(x.message) + " · กดปุ่มอีกครั้ง");
     } finally { my.busy = null; if (CUR === my) stepUi(); }
   }
+  /* 2026-10-27 07:38: ปุ่ม 🧊 ดู 3D ของชิ้นที่ยิง (เลขออเดอร์ + เลขชิ้นแบบเดียวกับแผงห่อ · partRef) — ออเดอร์ไม่มีงาน 3D บน GitHub = ปุ่มเทา */
+  function lot3dUi(hit){
+    var b = $("lot3d"), r = {bc:hit.b1, cp:hit.cp, od:hit.od, cab:hit.art || hit.cab, nm:hit.nm}, ref = partRef(r, "");
+    CUR.ref = ref; b.hidden = !ref; b.classList.remove("no3d");
+    if (!ref) return;
+    var lab = ref.p > 0 ? " (P" + ref.p + ")" : ""; b.textContent = "🧊 ดู 3D ชิ้นนี้" + lab;
+    var my = CUR; ord3dCheck(ref.ord).then(function(c){ if (CUR !== my) return; var no = c && c.st === "none"; b.classList.toggle("no3d", no); b.textContent = no ? "ไม่มี 3D (ออเดอร์ยังไม่ส่งงานขึ้น GitHub)" : "🧊 ดู 3D ชิ้นนี้" + lab; });
+  }
+  $("lot3d").onclick = function(){
+    if (!CUR || !CUR.ref) return; var c = ORD3D[CUR.ref.ord];
+    if (c && c.st === "none") { toast("ออเดอร์ " + CUR.ref.ord + " ยังไม่มีงาน 3D บน GitHub — ส่งลิงก์จาก StarNexus ก่อน"); return; }
+    if (CUR && pendOf().length && !confirm("ยังไม่ได้บันทึก " + pendOf().map(function(k){ return STEP[k].h; }).join(" / ") + "\nไปดู 3D เลย?")) return;
+    go(part3d(CUR.ref));
+  };
   $("stepEdge").onclick = function(){ onStep("edge"); };
   $("stepPaint").onclick = function(){ onStep("paint"); };   // 2026-10-26 16:35
   $("stepCoat").onclick = function(){ onStep("coat"); };
@@ -1096,14 +1133,15 @@
   /* ── โหมด (ผู้ใช้ 26/10 08:58: “ตัวสแกนต้องให้เลือกก่อนหรือเปล่าว่าจะดู 3D หรือสแกนบาร์เพื่อสถานะ Edge / Drill” → เลือก “3D / สถานะ”) ──
      จำไว้ในเครื่อง (มือถือแต่ละเครื่องมักประจำจุดเดียว) · ค่าเริ่มต้น = 3D (เหมือนแอปเดิม) · โหมดสถานะ = กรอบเล็งกว้าง (บาร์โค้ดเส้น) */
   var MODE_KEY = "scanlink_mode";
-  var MODE = lsGet(MODE_KEY) === "st" ? "st" : "3d";
-  var onlyLink = false, seen = {t:"", at:0};
+  var MODE = "st";   // 2026-10-27 07:38 โหมดเดียว (แอปดูเองจากโค้ดที่ยิง) — เดิม: lsGet(MODE_KEY) === "st" ? "st" : "3d" · แถบเลือกโหมดซ่อน (#modeBar)
+  var onlyLink = false, seen = {t:"", at:0}, linkSeen = {u:"", at:0, last:0};   // 07:38 linkSeen = ลิงก์ที่เห็นต่อเนื่อง (สแกนสด)
+  var HINT_ONE = "เล็งบาร์โค้ด / QR ให้อยู่ในกรอบ — สติกเกอร์ชิ้นงาน = Lot · สถานะ · 3D · ใบปะห่อ = รายการชิ้น · ตรวจรับ Site · Data Matrix = เปิด 3D";   // 07:38
   var HINT = {"3d":"เล็ง Data Matrix / QR ให้อยู่ในกรอบ — เปิดลิงก์ (ดู 3D) · ยิงบาร์โค้ด Pack = ดูชิ้นใน Pack", st:"เล็งบาร์โค้ด Code Part บนสติกเกอร์ชิ้นงาน แล้วกด Edge / สี / เคลือบ / Drill · Site = ยิงบาร์โค้ดใบปะห่อ (Pack) แล้วติ๊กชิ้นที่ได้รับ"};   // 18:23 Site ราย Pack   // 17:02 + Pack
   function setMode(m, first){
-    MODE = m === "st" ? "st" : "3d"; lsSet(MODE_KEY, MODE);
+    MODE = "st";   // 07:38 โหมดเดียว (เดิม: m === "st" ? "st" : "3d" · lsSet(MODE_KEY, MODE))
     document.body.classList.toggle("mode-st", MODE === "st");
     Array.prototype.forEach.call(document.querySelectorAll("#modeBar [data-mode]"), function(b){ var on = b.dataset.mode === MODE; b.classList.toggle("on", on); b.setAttribute("aria-selected", on ? "true" : "false"); });
-    $("hint").textContent = HINT[MODE];
+    $("hint").textContent = HINT_ONE;   // 07:38 (เดิม HINT[MODE])
     var keepPk = !first && PK && !$("sheet").hidden ? {t:PK.t, code:PK.code, ck:PK.ck, last:PK.last, rec:PK.rec, ckTouched:PK.ckTouched} : null;   // 18:23 แผง Pack เปิดอยู่ = สลับโหมดแล้วแผงเดิม (3D ↔ ตรวจรับ Site)
     if (!first) { hide("sheet"); shownText = ""; hold = false; CUR = null; packClear(); seen = {t:"", at:0}; lastClosed = {t:"", at:0}; }
     if (keepPk) { var P0 = packLookup(keepPk.code); if (P0) { shownText = keepPk.t; $("sheet").classList.toggle("st", MODE === "st"); renderPack(keepPk.t, P0, keepPk); show("sheet"); } }

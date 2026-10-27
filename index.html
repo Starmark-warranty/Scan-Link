@@ -408,7 +408,7 @@
   /* 2026-10-27 08:26 ผู้ใช้: “เพิ่ม version ตัวแอพสแกนให้ทีจะได้รู้ว่าคนที่ใช้อยู่เวอร์ชั่นไหน”
      → รุ่นแอป = เลขเดียวกับ cache ของ sw.js (scanlink-vNN) — แก้แอปครั้งไหน บวกทั้งสองที่ (APP_VER + CACHE)
        · โชว์หลังชื่อแอปบนหัวจอ · จดลงทุกการบันทึก (steps.json: ยิงขั้น / ตรวจห่อ / hist ช่อง v) — StarStock ดูได้ว่าใครใช้รุ่นไหน */
-  var APP_VER = "v31";   // v31 = 2026-10-27 11:59 FrontStyle จับคู่ชิ้นด้วย Code Part (Lot ที่ไม่มี Barcode 1 เช่น FOREST-2026-0017)   // v30 = 2026-10-27 11:49 เคลือบ = FrontShape M (+ ไม้เปลือย) · ⚠ BOM อาจผิด   // v29 = 2026-10-27 10:40 งานสีดูผิวบน/ล่างจาก Cut Rite (fstyle.csv ช่อง st sb · StarSync v1.24)   // v28 = 2026-10-27 10:10 งานสีดูผิวบน/ล่าง 34N (ไม่ใช่ FrontStyle N00S อย่างเดียว)   // v27 = 2026-10-27 09:12 ปุ่ม Drill ก่อน สี / เคลือบ (เจาะก่อนทำสี·เคลือบ)   // v26 = 2026-10-27 09:04 ชิ้นเคลือบดูจากรหัสไม้ทุก Lot (เดิมเฉพาะ Lot ที่ไม่มี FrontStyle)   // v25 = 2026-10-27 08:47 เก็บรูปที่ถ่ายลงเครื่อง · Data Matrix ไม่เปิดลิงก์เอง   // v24 = 2026-10-27 08:39 จำนวนชิ้นสี/เคลือบของ Lot · ชิ้นสี/เคลือบไม่มีปุ่ม Edge
+  var APP_VER = "v32";   // v32 = 2026-10-27 13:33 เคลือบ = FrontShape M + ผิวฟิล์ม G/N 03–05 P (Cut Rite) ที่ไม่ตรงรหัสไม้ · ไม้เมลามีนแบบบาน M = ไม่ใช่เคลือบ   // v31 = 2026-10-27 11:59 FrontStyle จับคู่ชิ้นด้วย Code Part (Lot ที่ไม่มี Barcode 1 เช่น FOREST-2026-0017)   // v30 = 2026-10-27 11:49 เคลือบ = FrontShape M (+ ไม้เปลือย) · ⚠ BOM อาจผิด   // v29 = 2026-10-27 10:40 งานสีดูผิวบน/ล่างจาก Cut Rite (fstyle.csv ช่อง st sb · StarSync v1.24)   // v28 = 2026-10-27 10:10 งานสีดูผิวบน/ล่าง 34N (ไม่ใช่ FrontStyle N00S อย่างเดียว)   // v27 = 2026-10-27 09:12 ปุ่ม Drill ก่อน สี / เคลือบ (เจาะก่อนทำสี·เคลือบ)   // v26 = 2026-10-27 09:04 ชิ้นเคลือบดูจากรหัสไม้ทุก Lot (เดิมเฉพาะ Lot ที่ไม่มี FrontStyle)   // v25 = 2026-10-27 08:47 เก็บรูปที่ถ่ายลงเครื่อง · Data Matrix ไม่เปิดลิงก์เอง   // v24 = 2026-10-27 08:39 จำนวนชิ้นสี/เคลือบของ Lot · ชิ้นสี/เคลือบไม่มีปุ่ม Edge
   var FORMATS = ["DataMatrix","QRCode","Code128"];
   var LABEL = {DataMatrix:"Data Matrix",QRCode:"QR Code",Code128:"Code 128"};
   var LIVE_OPTS = {formats:FORMATS, tryHarder:true, tryRotate:true, tryInvert:false, tryDownscale:true, maxNumberOfSymbols:4};
@@ -1047,6 +1047,10 @@
   var FIN_PAINT = /N00S/i, FIN_COAT = /FrontShape:\s*M/i, FIN_34 = /N01M0034/i, FIN_NAME = /(?:^|[_\-\s])(?:HG|MU)(?![A-Za-z])/i;
   var FIN_S34 = /^[NG]\d\dM0034/i;   // 2026-10-27 10:10 ผิว 34N (ไม้ทำสี)
   var FIN_MATCOAT = /^[A-Z]{2}\d\d(?:[NG]\d\dM\d{4}[A-Z]x{8}[A-Z]|x{8}[A-Z][NG]\d\dM\d{4}[A-Z])$/i;
+  var FIN_FILM = /^[GN]0[3-5]P\d{4}[A-Z]$/i;   // 13:33 v32 ฟิล์มเคลือบ G03P G04P N03P N04P N05P
+  /* ผิว PET (ไม่ใช่ฟิล์มเคลือบ) — แอปไม่มีชื่อวัสดุ: รายการจากชื่อใน items/info.csv วันที่ 27/10/2026 (StarStock ดูจากชื่อจริงที่มีคำ PET)
+     เฉพาะที่อยู่ในช่วง G/N 03–05 P · มีสี PET ใหม่ = เติมที่นี่ */
+  var FIN_PET = /^(G03P0071|N03P006[4-9]|N03P007[3-9]|N05P0052)[A-Z]$/i;
   function fsParse(text){
     if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
     var lines = text.split(/\r?\n/), h = csvLine(lines[0] || "").map(function(x){ return x.trim().toLowerCase(); });
@@ -1121,7 +1125,19 @@
     var cs = null; if (FS.sfl && FS.sfl[K]) { cs = [sf ? sf[2] : "", sf ? sf[3] : ""]; [hit.b1, hit.cp, hit.bc].forEach(function(b){ b = norm(b); var x = b && FS.sf[K + "|" + b]; if (x) cs = [x[0] || cs[0], x[1] || cs[1]]; }); if (pe && (pe.s[0] || pe.s[1])) cs = [pe.s[0] || cs[0], pe.s[1] || cs[1]]; }   // v31 + ผิวจากเลข P…
     if (cs) { if (/^N00S/i.test(cs[0]) || /^N00S/i.test(cs[1])) return "paint"; }
     else if (s34 && (FIN_NAME.test(hit.lot) || FIN_PAINT.test(fs))) return "paint";
-    if (FIN_COAT.test(fs)) { hit.bw = sf ? (/^x{8}/i.test(sf[2]) ? 0 : 1) + (/^x{8}/i.test(sf[3]) ? 0 : 1) === 2 : false; return "coat"; }   // 11:49 + ⚠ BOM อาจผิด (FrontShape M แต่ไม้ไม่เปลือยสักหน้า)
+    /* 2026-10-27 13:33 v32 ผู้ใช้ (RE-0069-0806 MxWx09 บนไม้เมลามีน MD09G01M0411YG01M0411Y “เคสนี้ BOM ถูก … แบบบานเคลือบที่ PE ใช้กับไม้เมลามีน”
+       “งานเคลือบผิวบนหรือล่างจะมี 1 ตัวที่เป็น G03P G04P N03P N04P หรือ N05P ยกเว้นผิว PET · ปิดผิวธรรมดา/เมลามีน ผิวบนล่างจะตรงกับ Material Code”) — ตรงกับ StarStock lots 1.76
+       เดิม v30: FrontShape M = เคลือบเสมอ (ไม้ไม่เปลือยสักหน้า = ⚠ BOM อาจผิด)
+       ตอนนี้: ผิวบน/ล่างของ Cut Rite (fstyle.csv st sb = เฉพาะชิ้นที่ผิวต่างจากรหัสไม้) มีฟิล์ม G/N 03–05 P ที่ไม่ใช่ PET และไม่ตรงรหัสไม้ = เคลือบ (+ ไม้ไม่เปลือยสักหน้า = ⚠)
+         มีผิว Cut Rite แต่ไม่มีฟิล์ม = ไม่ใช่ · Lot ที่ยังไม่มีผิว Cut Rite = ไม้เปลือย 1 หน้าขึ้นไป = เคลือบ */
+    if (FIN_COAT.test(fs)) {
+      var sx = null; [hit.b1, hit.cp, hit.bc].forEach(function(b){ b = norm(b); var x = b && FS.sf && FS.sf[K + "|" + b]; if (x && !sx) sx = x; }); if (!sx && pe && (pe.s[0] || pe.s[1])) sx = pe.s;
+      var mf = sf ? [sf[2].toUpperCase(), sf[3].toUpperCase()] : [], film = sx ? [sx[0], sx[1]].filter(function(s){ s = String(s || "").toUpperCase(); return FIN_FILM.test(s) && !FIN_PET.test(s) && mf.indexOf(s) < 0; })[0] : "";
+      var rawN = sf ? (/^x{8}/i.test(sf[2]) ? 1 : 0) + (/^x{8}/i.test(sf[3]) ? 1 : 0) : -1;
+      if (film) { hit.bw = rawN === 0; return "coat"; }
+      hit.bw = false; if (sx || (FS.sfl && FS.sfl[K])) return "";
+      return rawN > 0 ? "coat" : "";
+    }
     /* 2026-10-27 11:49 ผู้ใช้: “งานเคลือบต้องจับ Frontstyle หลัง : Frontshape เป็น M แล้วไม้มีเปลือย 1 หน้า คืองานเคลือบ … แบบบานขึ้นต้นด้วย M แต่ไม้ไม่ใช่เปลือย 1 หน้า หรือ 2 หน้า แจ้งเตือนว่า BOM อาจจะผิด”
        (ตรงกับ StarStock lots 1.71) ไม่มี FrontShape M = ไม่ใช่เคลือบ — เว้น Lot ที่ไม่มี FrontStyle สักชิ้น = ดูรหัสไม้เปลือย 1 หน้าแบบ v24 · เดิม v26: ดูรหัสไม้ทุก Lot */
     if (!FS.m) return FIN_MATCOAT.test(mat) ? "coat" : null;

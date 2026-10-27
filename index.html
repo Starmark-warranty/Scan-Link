@@ -280,9 +280,9 @@
     <button id="lot3d" hidden>🧊 ดู 3D ชิ้นนี้</button><!-- 2026-10-27 07:38 ยิงสติกเกอร์ชิ้นงาน = สถานะ + ดู 3D ได้ในแผงเดียว -->
     <div class="stepbtns">
       <button class="step" id="stepEdge"><b>Edge</b><span>ปิดขอบ</span><small></small></button>
+      <button class="step" id="stepDrill"><b>Drill</b><span>เจาะ</span><small></small></button><!-- 2026-10-27 09:12 ผู้ใช้: “สลับ Drill ไปอยู่ก่อนเคลือบและทำสี … เจาะก่อนทำสี เจาะก่อนเคลือบ ในโทรศัพท์ด้วย” (เดิม Edge · สี · เคลือบ · Drill · Site) -->
       <button class="step" id="stepPaint"><b>สี</b><span>รับเข้าทำสี</span><small></small></button>
       <button class="step" id="stepCoat"><b>เคลือบ</b><span>รับเข้าเคลือบ</span><small></small></button>
-      <button class="step" id="stepDrill"><b>Drill</b><span>เจาะ</span><small></small></button>
       <button class="step" id="stepSite"><b>Site</b><span>ถึงไซต์</span><small></small></button>
     </div>
     <div id="lotFoot"><span><span id="byTxt"></span> <button class="link" id="byBtn">เปลี่ยนชื่อ</button></span><span id="lotData"></span></div>
@@ -408,7 +408,7 @@
   /* 2026-10-27 08:26 ผู้ใช้: “เพิ่ม version ตัวแอพสแกนให้ทีจะได้รู้ว่าคนที่ใช้อยู่เวอร์ชั่นไหน”
      → รุ่นแอป = เลขเดียวกับ cache ของ sw.js (scanlink-vNN) — แก้แอปครั้งไหน บวกทั้งสองที่ (APP_VER + CACHE)
        · โชว์หลังชื่อแอปบนหัวจอ · จดลงทุกการบันทึก (steps.json: ยิงขั้น / ตรวจห่อ / hist ช่อง v) — StarStock ดูได้ว่าใครใช้รุ่นไหน */
-  var APP_VER = "v26";   // v26 = 2026-10-27 09:04 ชิ้นเคลือบดูจากรหัสไม้ทุก Lot (เดิมเฉพาะ Lot ที่ไม่มี FrontStyle)   // v25 = 2026-10-27 08:47 เก็บรูปที่ถ่ายลงเครื่อง · Data Matrix ไม่เปิดลิงก์เอง   // v24 = 2026-10-27 08:39 จำนวนชิ้นสี/เคลือบของ Lot · ชิ้นสี/เคลือบไม่มีปุ่ม Edge
+  var APP_VER = "v27";   // v27 = 2026-10-27 09:12 ปุ่ม Drill ก่อน สี / เคลือบ (เจาะก่อนทำสี·เคลือบ)   // v26 = 2026-10-27 09:04 ชิ้นเคลือบดูจากรหัสไม้ทุก Lot (เดิมเฉพาะ Lot ที่ไม่มี FrontStyle)   // v25 = 2026-10-27 08:47 เก็บรูปที่ถ่ายลงเครื่อง · Data Matrix ไม่เปิดลิงก์เอง   // v24 = 2026-10-27 08:39 จำนวนชิ้นสี/เคลือบของ Lot · ชิ้นสี/เคลือบไม่มีปุ่ม Edge
   var FORMATS = ["DataMatrix","QRCode","Code128"];
   var LABEL = {DataMatrix:"Data Matrix",QRCode:"QR Code",Code128:"Code 128"};
   var LIVE_OPTS = {formats:FORMATS, tryHarder:true, tryRotate:true, tryInvert:false, tryDownscale:true, maxNumberOfSymbols:4};
@@ -861,8 +861,8 @@
   /* 2026-10-26 15:36–16:35 ผู้ใช้: “เพิ่มช่องเพื่อสแกนรับเข้างานทำสี หรือรับเข้างานเคลือบ … State อยู่หลังปิดขอบ ก่อน Drill”
      → ปุ่ม สี (คีย์ paint) · เคลือบ (คีย์ coat) ทั้ง Lot แบบ Edge/Drill · StarStock lots 1.43 ติ๊กชิ้นตามชนิดของ FrontStyle (ชิ้นสีจาก paint · ชิ้นเคลือบจาก coat)
      ลำดับใน STEP = ลำดับปุ่ม/ลำดับในข้อความ: Edge → สี → เคลือบ → Drill → Site */
-  var STEP = {edge:{h:"Edge", th:"ปิดขอบ", b:"stepEdge"}, paint:{h:"สี", th:"รับเข้าทำสี", b:"stepPaint", rx:1}, coat:{h:"เคลือบ", th:"รับเข้าเคลือบ", b:"stepCoat", rx:1},
-              drill:{h:"Drill", th:"เจาะ", b:"stepDrill"}, site:{h:"Site", th:"ถึงไซต์", b:"stepSite"}};
+  var STEP = {edge:{h:"Edge", th:"ปิดขอบ", b:"stepEdge"}, drill:{h:"Drill", th:"เจาะ", b:"stepDrill"},   // 09:12 Drill ก่อน สี / เคลือบ (เดิมต่อท้ายเคลือบ — ลำดับนี้ใช้เรียงข้อความ “ยังไม่ได้บันทึก …”)
+              paint:{h:"สี", th:"รับเข้าทำสี", b:"stepPaint", rx:1}, coat:{h:"เคลือบ", th:"รับเข้าเคลือบ", b:"stepCoat", rx:1}, site:{h:"Site", th:"ถึงไซต์", b:"stepSite"}};
   var BY_KEY = "scanlink_by", BY_ASKED = "scanlink_by_asked", DEV_KEY = "scanlink_dev";
   var IDX_FV = 9;   // 2026-10-27 08:39: 9 = + รายชิ้นทุกแถว (lr: Lot · Barcode · Code Part · รหัสไม้) นับชิ้นสี/เคลือบของ Lot   // 2026-10-27 08:20: 8 = + RecId ของชิ้นในห่อ (ล้างที่ ADMIN แก้ช่อง Site)   // 2026-10-27 07:51: 7 = + รหัสไม้ (mat) ราย entry (ชิ้นสี 34N / ชิ้นเคลือบผิวดิบ)   // 2026-10-27 07:38: 6 = + Code Part / Barcode / OrderNumber / Product Article ราย entry (ปุ่ม 3D ในแผง Lot)            // รูปแบบดัชนีที่จำในเครื่อง: 2 = Code Part + Barcode · 3 = + Proj Name ราย Lot · 4 = + Code Pack รายชิ้น (2026-10-26 17:02) · 5 = + OrderNumber รายชิ้น (17:38) (เปลี่ยนเลข = สร้างใหม่ทุกเครื่อง)
   var IDX = {map:null, lots:null, nm:null, cab:null, u:0, at:"", rows:0, nLots:0, loading:null, checked:0, err:null, info:null};
@@ -1291,7 +1291,7 @@
   var MODE = "st";   // 2026-10-27 07:38 โหมดเดียว (แอปดูเองจากโค้ดที่ยิง) — เดิม: lsGet(MODE_KEY) === "st" ? "st" : "3d" · แถบเลือกโหมดซ่อน (#modeBar)
   var onlyLink = false, seen = {t:"", at:0}, linkSeen = {u:"", at:0, last:0};   // 07:38 linkSeen = ลิงก์ที่เห็นต่อเนื่อง (สแกนสด)
   var HINT_ONE = "เล็งบาร์โค้ด / QR ให้อยู่ในกรอบ — สติกเกอร์ชิ้นงาน = Lot · สถานะ · 3D · ใบปะห่อ = รายการชิ้น · ตรวจรับ Site · Data Matrix = ปุ่ม 🧊 เปิด 3D (ไม่เปิดเอง)";   // 07:38 · 08:47 Data Matrix ไม่เปิดเอง
-  var HINT = {"3d":"เล็ง Data Matrix / QR ให้อยู่ในกรอบ — เปิดลิงก์ (ดู 3D) · ยิงบาร์โค้ด Pack = ดูชิ้นใน Pack", st:"เล็งบาร์โค้ด Code Part บนสติกเกอร์ชิ้นงาน แล้วกด Edge / สี / เคลือบ / Drill · Site = ยิงบาร์โค้ดใบปะห่อ (Pack) แล้วติ๊กชิ้นที่ได้รับ"};   // 18:23 Site ราย Pack   // 17:02 + Pack
+  var HINT = {"3d":"เล็ง Data Matrix / QR ให้อยู่ในกรอบ — เปิดลิงก์ (ดู 3D) · ยิงบาร์โค้ด Pack = ดูชิ้นใน Pack", st:"เล็งบาร์โค้ด Code Part บนสติกเกอร์ชิ้นงาน แล้วกด Edge / Drill / สี / เคลือบ · Site = ยิงบาร์โค้ดใบปะห่อ (Pack) แล้วติ๊กชิ้นที่ได้รับ"};   // 18:23 Site ราย Pack   // 17:02 + Pack
   function setMode(m, first){
     MODE = "st";   // 07:38 โหมดเดียว (เดิม: m === "st" ? "st" : "3d" · lsSet(MODE_KEY, MODE))
     document.body.classList.toggle("mode-st", MODE === "st");
@@ -1307,7 +1307,7 @@
   function hint3d(t){
     CUR = null; $("lotBox").hidden = true; $("sheet").classList.remove("lot"); $("sheetKind").textContent = "ไม่ใช่ลิงก์";
     var hit = lookup(t);
-    lotMsg(hit ? "Code Part ของ Lot <b>" + esc(hit.lot) + "</b> — จะกด Edge / สี / เคลือบ / Drill / Site ให้ <button class='link' id='toSt'>สลับเป็นโหมดสถานะ</button>" : "");
+    lotMsg(hit ? "Code Part ของ Lot <b>" + esc(hit.lot) + "</b> — จะกด Edge / Drill / สี / เคลือบ / Site ให้ <button class='link' id='toSt'>สลับเป็นโหมดสถานะ</button>" : "");
   }
   $("lotMsg").addEventListener("click", function(e){ if (e.target && e.target.id === "toSt") { var t = shownText; setMode("st"); shownText = t; $("sheetText").textContent = t; renderLot(t); show("sheet"); } });
 

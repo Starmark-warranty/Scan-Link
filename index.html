@@ -50,6 +50,8 @@
     display:flex;align-items:center;justify-content:space-between;gap:10px;
     background:linear-gradient(rgba(0,0,0,.55),rgba(0,0,0,0))}
   header h1{margin:0;font-size:19px;font-weight:700;letter-spacing:.2px;white-space:nowrap}
+  header h1 small{font-size:11.5px;font-weight:700;color:var(--muted);background:rgba(255,255,255,.12);border-radius:999px;padding:1px 7px;vertical-align:3px}   /* 2026-10-27 08:26 รุ่นแอป */
+  #pkFoot{display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px;font-size:12.5px;color:var(--muted)} #pkFoot .link{font-size:12.5px;padding:2px 4px}
   .hright{display:flex;align-items:center;gap:8px;min-width:0}
   #status{min-width:0;overflow:hidden;text-overflow:ellipsis}
   #shareBtn{height:36px;padding:0 12px;border-radius:999px;font-size:14px;gap:6px;flex:none;
@@ -251,7 +253,7 @@
 </div>
 
 <header>
-  <h1>สแกนเข้าลิงก์</h1>
+  <h1>สแกนเข้าลิงก์ <small id="appVer" title="รุ่นของแอป — ให้ตรงกับรุ่นล่าสุด (ปิดแอปแล้วเปิดใหม่ = อัปเดต)"></small></h1><!-- 2026-10-27 08:26 รุ่นแอป -->
   <div class="hright">
     <div id="status">กำลังเตรียม…</div>
     <button class="btn" id="shareBtn" aria-label="แชร์ลิงก์แอป"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>แชร์</button>
@@ -284,6 +286,7 @@
     <div id="packLots" hidden></div><!-- 19:37 ห่อของ Lot นี้ ตรวจรับแล้ว x / ทั้งหมด -->
     <div class="pkbar" id="packBar" hidden><button id="packAll">☑ ติ๊กทั้งห่อ</button><span id="packN"></span></div>
     <div id="packList"></div>
+    <div id="pkFoot"><span><span id="pkByTxt"></span> <button class="link" id="pkByBtn">เปลี่ยนชื่อ</button></span></div><!-- 2026-10-27 08:23 เปลี่ยนชื่อผู้ตรวจได้ในแผงห่อด้วย -->
   </div>
   <div id="lotMsg" hidden></div>
   <div class="row">
@@ -389,6 +392,10 @@
 <script>
 (function(){
   "use strict";
+  /* 2026-10-27 08:26 ผู้ใช้: “เพิ่ม version ตัวแอพสแกนให้ทีจะได้รู้ว่าคนที่ใช้อยู่เวอร์ชั่นไหน”
+     → รุ่นแอป = เลขเดียวกับ cache ของ sw.js (scanlink-vNN) — แก้แอปครั้งไหน บวกทั้งสองที่ (APP_VER + CACHE)
+       · โชว์หลังชื่อแอปบนหัวจอ · จดลงทุกการบันทึก (steps.json: ยิงขั้น / ตรวจห่อ / hist ช่อง v) — StarStock ดูได้ว่าใครใช้รุ่นไหน */
+  var APP_VER = "v23";
   var FORMATS = ["DataMatrix","QRCode","Code128"];
   var LABEL = {DataMatrix:"Data Matrix",QRCode:"QR Code",Code128:"Code 128"};
   var LIVE_OPTS = {formats:FORMATS, tryHarder:true, tryRotate:true, tryInvert:false, tryDownscale:true, maxNumberOfSymbols:4};
@@ -830,7 +837,7 @@
     if (v === null) return false;
     lsSet(BY_KEY, String(v).trim().slice(0, 40)); lsSet(BY_ASKED, "1"); showBy(); return true;
   }
-  function showBy(){ var n = myName(); $("byTxt").textContent = "ผู้ยิง: " + (n || "ไม่ระบุชื่อ"); }
+  function showBy(){ var n = myName(); $("byTxt").textContent = "ผู้ยิง: " + (n || "ไม่ระบุชื่อ"); var pb = $("pkByTxt"); if (pb) pb.textContent = "ผู้ตรวจ: " + (n || "ไม่ระบุชื่อ"); }   // 08:23 + แผงห่อ
   function pad(n){ return (n < 10 ? "0" : "") + n; }
   function nowIso(){ var d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + "T" + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds()); }
   function hm(s){   // "2026-10-26T08:12:00" → "08:12" (วันนี้) / "25/10 08:12"
@@ -1051,12 +1058,12 @@
   async function stepSaveMany(hit, want){
     for (var t = 0; t < 5; t++) {
       var cur = await stepsRead(), K = norm(hit.lot), e = cur.base.lots[K] || {lot:hit.lot}, n = 0;
-      var at = nowIso(), rec = {at:at, by:myName(), bc:hit.bc, dev:devId()};
+      var at = nowIso(), rec = {at:at, by:myName(), bc:hit.bc, dev:devId(), v:APP_VER};   // 08:26 + v รุ่นแอป
       Object.keys(want).forEach(function(k){
         if (want[k] && !e[k]) e[k] = Object.assign({}, rec);
         else if (!want[k] && e[k]) { delete e[k]; ovClear(e, OVK[k]); }   // 2026-10-27 08:20 ยกเลิก = ล้างที่ ADMIN แก้ของขั้นนี้ทั้ง Lot ด้วย
         else return;   // มีคนทำแบบเดียวกันไว้แล้ว
-        n++; cur.base.hist.unshift({t: want[k] ? "ยิง" : "ยกเลิก", step:k, lot:hit.lot, at:at, by:rec.by, bc:hit.bc, nm:hit.nm || "", dev:rec.dev});
+        n++; cur.base.hist.unshift({v:APP_VER, t: want[k] ? "ยิง" : "ยกเลิก", step:k, lot:hit.lot, at:at, by:rec.by, bc:hit.bc, nm:hit.nm || "", dev:rec.dev});
       });
       if (!n) return {entry:e};
       if (lotKeep(e)) { e.lot = hit.lot; cur.base.lots[K] = e; } else delete cur.base.lots[K];   // + paint / coat · 18:23 + sitePk (ตรวจรับราย Pack)
@@ -1204,6 +1211,8 @@
   $("stepSite").onclick = function(){ onStep("site"); };
   $("saveBtn").onclick = function(){ onSave(); };
   $("byBtn").onclick = function(){ askName(); };
+  $("pkByBtn").onclick = function(){ askName(); };   // 2026-10-27 08:23 ผู้ใช้: “จะแก้ชื่อในแอพสแกนได้ตรงไหนบ้าง” → แผงห่อ + แผง Lot
+  $("appVer").textContent = APP_VER;   // 08:26
   $("lotName").onclick = function(){
     var t = $("lotName").textContent; if (!t) return;
     var done = function(){ toast("คัดลอก " + t + " แล้ว"); };
@@ -1330,6 +1339,7 @@
     ords.forEach(function(o){ ord3dCheck(o).then(function(){ if (PK === my) packNote(); }); });
     if (last) setTimeout(function(){ var el = $("packList").querySelector(".pkr.last"); if (el) try { el.scrollIntoView({block:"nearest"}); } catch (e) {} }, 0);
     siteLoad();   // 18:23 สถานะ Site ของห่อ (lots/steps.json)
+    showBy();   // 2026-10-27 08:23 ชื่อผู้ตรวจท้ายแผงห่อ
     return true;
   }
   /* รายการชิ้นใน Pack — โหมด 3D: แตะ = ดู 3D (17:02) · โหมดสถานะ (18:23): แตะ = ติ๊กว่าได้รับ · ปุ่ม 🧊 3D แยกขวา */
@@ -1462,7 +1472,7 @@
     if (got && ms.length && !confirm("ห่อ " + my.code + " ได้รับ " + got + " จาก " + n + " รายการ\nขาด: " + ms.slice(0, 8).map(rowName).join(", ") + (ms.length > 8 ? " … อีก " + (ms.length - 8) : "") + "\n\nบันทึกว่าได้รับไม่ครบ?")) return;
     if (!lsGet(BY_ASKED)) askName();
     my.busy = "save"; siteUi();
-    var lots = pkLots(), rec = got ? {at:nowIso(), by:myName(), dev:devId(), pk:my.code, n:n, ok:got, miss: ms.map(function(x){ return x.sk; }), mn: ms.map(rowName)} : null;
+    var lots = pkLots(), rec = got ? {at:nowIso(), by:myName(), dev:devId(), v:APP_VER, pk:my.code, n:n, ok:got, miss: ms.map(function(x){ return x.sk; }), mn: ms.map(rowName)} : null;
     try {
       for (var t = 0; t < 5; t++) {
         var cur = await stepsRead(), at = rec ? rec.at : nowIso();
@@ -1470,7 +1480,7 @@
           if (rec) { e.sitePk = e.sitePk || {}; e.sitePk[my.code] = rec; } else if (e.sitePk) { delete e.sitePk[my.code]; if (!Object.keys(e.sitePk).length) delete e.sitePk; }
           ovClear(e, "si", my.rows.filter(function(x){ return x.r.lot === l; }).map(function(x){ return x.r.rc; }));   // 08:20 ตรวจห่อเอง = ล้างที่ ADMIN แก้ช่อง Site ของชิ้นในห่อ
           if (lotKeep(e)) { e.lot = l; cur.base.lots[K] = e; } else delete cur.base.lots[K];
-          cur.base.hist.unshift({t: rec ? (ms.length ? "ตรวจห่อ (ขาด)" : "ตรวจห่อ (ครบ)") : "ยกเลิก", step:"site", pack:my.code, lot:l, at:at, by:myName(), n:n, ok:got, dev:devId()}); });
+          cur.base.hist.unshift({v:APP_VER, t: rec ? (ms.length ? "ตรวจห่อ (ขาด)" : "ตรวจห่อ (ครบ)") : "ยกเลิก", step:"site", pack:my.code, lot:l, at:at, by:myName(), n:n, ok:got, dev:devId()}); });
         cur.base.hist = cur.base.hist.slice(0, 2000); stepsPrune(cur.base);
         cur.base.v = 1; cur.base.at = at; cur.base.by = myName();
         var c = await gzB64(JSON.stringify(cur.base)), w = null;

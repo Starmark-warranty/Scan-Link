@@ -408,7 +408,7 @@
   /* 2026-10-27 08:26 ผู้ใช้: “เพิ่ม version ตัวแอพสแกนให้ทีจะได้รู้ว่าคนที่ใช้อยู่เวอร์ชั่นไหน”
      → รุ่นแอป = เลขเดียวกับ cache ของ sw.js (scanlink-vNN) — แก้แอปครั้งไหน บวกทั้งสองที่ (APP_VER + CACHE)
        · โชว์หลังชื่อแอปบนหัวจอ · จดลงทุกการบันทึก (steps.json: ยิงขั้น / ตรวจห่อ / hist ช่อง v) — StarStock ดูได้ว่าใครใช้รุ่นไหน */
-  var APP_VER = "v30";   // v30 = 2026-10-27 11:49 เคลือบ = FrontShape M (+ ไม้เปลือย) · ⚠ BOM อาจผิด   // v29 = 2026-10-27 10:40 งานสีดูผิวบน/ล่างจาก Cut Rite (fstyle.csv ช่อง st sb · StarSync v1.24)   // v28 = 2026-10-27 10:10 งานสีดูผิวบน/ล่าง 34N (ไม่ใช่ FrontStyle N00S อย่างเดียว)   // v27 = 2026-10-27 09:12 ปุ่ม Drill ก่อน สี / เคลือบ (เจาะก่อนทำสี·เคลือบ)   // v26 = 2026-10-27 09:04 ชิ้นเคลือบดูจากรหัสไม้ทุก Lot (เดิมเฉพาะ Lot ที่ไม่มี FrontStyle)   // v25 = 2026-10-27 08:47 เก็บรูปที่ถ่ายลงเครื่อง · Data Matrix ไม่เปิดลิงก์เอง   // v24 = 2026-10-27 08:39 จำนวนชิ้นสี/เคลือบของ Lot · ชิ้นสี/เคลือบไม่มีปุ่ม Edge
+  var APP_VER = "v31";   // v31 = 2026-10-27 11:59 FrontStyle จับคู่ชิ้นด้วย Code Part (Lot ที่ไม่มี Barcode 1 เช่น FOREST-2026-0017)   // v30 = 2026-10-27 11:49 เคลือบ = FrontShape M (+ ไม้เปลือย) · ⚠ BOM อาจผิด   // v29 = 2026-10-27 10:40 งานสีดูผิวบน/ล่างจาก Cut Rite (fstyle.csv ช่อง st sb · StarSync v1.24)   // v28 = 2026-10-27 10:10 งานสีดูผิวบน/ล่าง 34N (ไม่ใช่ FrontStyle N00S อย่างเดียว)   // v27 = 2026-10-27 09:12 ปุ่ม Drill ก่อน สี / เคลือบ (เจาะก่อนทำสี·เคลือบ)   // v26 = 2026-10-27 09:04 ชิ้นเคลือบดูจากรหัสไม้ทุก Lot (เดิมเฉพาะ Lot ที่ไม่มี FrontStyle)   // v25 = 2026-10-27 08:47 เก็บรูปที่ถ่ายลงเครื่อง · Data Matrix ไม่เปิดลิงก์เอง   // v24 = 2026-10-27 08:39 จำนวนชิ้นสี/เคลือบของ Lot · ชิ้นสี/เคลือบไม่มีปุ่ม Edge
   var FORMATS = ["DataMatrix","QRCode","Code128"];
   var LABEL = {DataMatrix:"Data Matrix",QRCode:"QR Code",Code128:"Code 128"};
   var LIVE_OPTS = {formats:FORMATS, tryHarder:true, tryRotate:true, tryInvert:false, tryDownscale:true, maxNumberOfSymbols:4};
@@ -1043,7 +1043,7 @@
        เคลือบ = FrontStyle ขึ้นต้น FrontShape:M · หรือ Lot ที่ไม่มี FrontStyle เลย + ไม้ผิวดิบ 1 ด้าน + อีกด้านเมลามีน (MD19N01M0029NxxxxxxxxN)
        → แผง Lot ขึ้นเฉพาะปุ่มของชนิดนั้น · ไม่ใช่ทั้งสอง = ไม่มีปุ่ม สี / เคลือบ · ยังโหลด fstyle.csv ไม่ได้ = ขึ้นทั้งสองแบบเดิม
      FrontStyle = lots/fstyle.csv (StarSync v1.22 · v1.23 + Lot ที่จบแล้ว) จับด้วย Lot + Barcode 1/2 · จำในเครื่อง (IndexedDB) โหลดใหม่เมื่อไฟล์เปลี่ยน */
-  var FS_F = "fstyle.csv", FS = {m:null, lots:null, u:0, sf:{}, sfl:{}};   // 10:40 + sf (ผิวราย Part) · sfl (Lot ที่มีผิว)
+  var FS_F = "fstyle.csv", FS = {m:null, lots:null, u:0, sf:{}, sfl:{}, p:null, ipc:null, ipcD:null};   // v31 + p (Lot|pid เมื่อไฟล์ไม่มีช่อง bp) · ipc (จำนวนเลข P… ต่อ Lot ในรายชิ้น)   // 10:40 + sf (ผิวราย Part) · sfl (Lot ที่มีผิว)
   var FIN_PAINT = /N00S/i, FIN_COAT = /FrontShape:\s*M/i, FIN_34 = /N01M0034/i, FIN_NAME = /(?:^|[_\-\s])(?:HG|MU)(?![A-Za-z])/i;
   var FIN_S34 = /^[NG]\d\dM0034/i;   // 2026-10-27 10:10 ผิว 34N (ไม้ทำสี)
   var FIN_MATCOAT = /^[A-Z]{2}\d\d(?:[NG]\d\dM\d{4}[A-Z]x{8}[A-Z]|x{8}[A-Z][NG]\d\dM\d{4}[A-Z])$/i;
@@ -1051,6 +1051,11 @@
     if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
     var lines = text.split(/\r?\n/), h = csvLine(lines[0] || "").map(function(x){ return x.trim().toLowerCase(); });
     var iL = h.indexOf("lot"), i1 = h.indexOf("bc1"), i2 = h.indexOf("bc2"), iF = h.indexOf("fs"), iS = h.indexOf("st"), iB = h.indexOf("sb"), m = {}, lots = {}, lot = "", sf = {}, sfl = {};   // 10:40 + st sb
+    /* 2026-10-27 11:59 v31 (ผู้ใช้: FOREST-2026-0017 ช่อง Paint/Membrane “–” · ตรงกับ StarStock lots 1.73)
+       เดิม: คีย์ = Lot + Barcode 1/2 ของ CSV อย่างเดียว — Lot นี้ AX มี Barcode 1 แค่ 45/167 ชิ้น → ชิ้นเคลือบ 16 ชิ้นไม่รู้ว่าเคลือบ
+       ตอนนี้: + Code Part จากช่อง bp (StarSync v1.25 · ส่วนหน้า PD… + “-” + pid · ^ = ส่วนหน้าเหมือนแถวบน · =ค่า = ค่าเต็ม) → hit.cp จับได้เลย
+         ไฟล์ยังไม่มีช่อง bp = เก็บ Lot|pid ไว้ใน p (จับด้วยเลข P… ท้าย Code Part · ซ้ำได้เมื่อค่าเหมือนกันและจำนวนเท่ากับรายชิ้น) */
+    var iP = h.indexOf("pid"), iN = h.indexOf("nm"), iX = h.indexOf("bp"), bpv = "", pm = iX >= 0 ? null : {};
     if (iL < 0 || iF < 0) return null;
     for (var r = 1; r < lines.length; r++) { var ln = lines[r]; if (!ln) continue;
       while ((ln.split('"').length - 1) % 2 && r + 1 < lines.length) ln += "\n" + lines[++r];
@@ -1058,18 +1063,21 @@
       var fs = a[iF] || ""; if (fs.charAt(0) === "=") fs = fs.slice(1);
       /* 2026-10-27 10:40 (StarStock lots 1.63 · StarSync v1.24): ช่อง st sb = ผิวบน/ล่างจาก Cut Rite (SurfaceBeforeCutTop/BottomCode) เฉพาะชิ้นที่ผิวต่างจากรหัสวัสดุ — แถว fs ว่างแต่มีผิว = ไม่นับ FrontStyle */
       var st = iS >= 0 ? a[iS] || "" : "", sb = iB >= 0 ? a[iB] || "" : "";
-      if (l0 && (st || sb)) { var K1 = norm(l0); sfl[K1] = 1; [a[i1], a[i2]].forEach(function(b){ b = norm(b); if (b && b !== "MANUAL") sf[K1 + "|" + b] = [st, sb]; }); }
+      var pid = iP >= 0 ? String(a[iP] || "").trim() : "", ks = [a[i1], a[i2]];   // v31
+      if (iX >= 0) { var bp = String(a[iX] || "").trim(), full = ""; if (bp === "^") full = bpv && pid ? bpv + "-" + pid : ""; else if (bp.charAt(0) === "=") { full = bp.slice(1); bpv = ""; } else if (bp) { bpv = bp; full = pid ? bp + "-" + pid : ""; } else bpv = ""; if (full) ks.push(full); }
+      else if (l0 && pid) { var kp = norm(l0) + "|" + norm(pid), e0 = pm[kp], n0 = iN >= 0 ? a[iN] || "" : ""; if (!e0) pm[kp] = {f:fs, s:[st, sb], n:n0, c:1}; else { e0.c++; if (e0.f !== fs || e0.s[0] !== st || e0.s[1] !== sb) e0.x = 1; if (e0.n !== n0) e0.n = ""; } }
+      if (l0 && (st || sb)) { var K1 = norm(l0); sfl[K1] = 1; ks.forEach(function(b){ b = norm(b); if (b && b !== "MANUAL") sf[K1 + "|" + b] = [st, sb]; }); }
       if (!l0 || !fs) continue;
       var K = norm(l0); lots[K] = 1;
-      [a[i1], a[i2]].forEach(function(b){ b = norm(b); if (b && b !== "MANUAL") m[K + "|" + b] = fs; }); }
-    return {m:m, lots:lots, sf:sf, sfl:sfl};
+      ks.forEach(function(b){ b = norm(b); if (b && b !== "MANUAL") m[K + "|" + b] = fs; }); }
+    return {m:m, lots:lots, sf:sf, sfl:sfl, p:pm};
   }
   async function fsLoad(f){
-    if (!FS.m) { var sv = await idbGet("fstyle"); if (sv && sv.m) { FS.m = sv.m; FS.lots = sv.lots; FS.sf = sv.sf || {}; FS.sfl = sv.sfl || {}; FS.u = sv.v === 2 ? sv.u : 0; } }   // 10:40 v:2 = มีผิว st sb (ของเดิมในเครื่อง = อ่านไฟล์ใหม่)
+    if (!FS.m) { var sv = await idbGet("fstyle"); if (sv && sv.m) { FS.m = sv.m; FS.lots = sv.lots; FS.sf = sv.sf || {}; FS.sfl = sv.sfl || {}; FS.p = sv.p || null; FS.u = sv.v === 3 ? sv.u : 0; } }   // v31 v:3 = มี Code Part / pid (ของเดิมในเครื่อง = อ่านไฟล์ใหม่)   // 10:40 v:2 = มีผิว st sb (ของเดิมในเครื่อง = อ่านไฟล์ใหม่)
     if (!f || f.u === FS.u) return;
     var rf = await readFile(LOT_DIR, FS_F); if (!rf) return;
     var d = fsParse(rf.text); if (!d) return;
-    FS.m = d.m; FS.lots = d.lots; FS.sf = d.sf; FS.sfl = d.sfl; FS.u = rf.u; idbPut("fstyle", {m:d.m, lots:d.lots, sf:d.sf, sfl:d.sfl, u:rf.u, v:2});
+    FS.m = d.m; FS.lots = d.lots; FS.sf = d.sf; FS.sfl = d.sfl; FS.p = d.p; FS.u = rf.u; idbPut("fstyle", {m:d.m, lots:d.lots, sf:d.sf, sfl:d.sfl, p:d.p, u:rf.u, v:3});
     if (CUR && CUR.hit) { CUR.fk = finKind(CUR.hit); stepUi(); lotPartTxt(); }
   }
   function lotPartTxt(){ if (!CUR || !CUR.hit) return; var hit = CUR.hit; $("lotPart").textContent = [hit.nm, hit.pj || hit.cab, CUR.fk === "paint" ? "🎨 ชิ้นนี้ทำสี" : CUR.fk === "coat" ? "✨ ชิ้นนี้เคลือบ" + (hit.bw ? " · ⚠ BOM อาจผิด (FrontShape M แต่ไม้ไม่เปลือย)" : "") /* 11:49 */ : ""].filter(Boolean).join(" · "); lotFinTxt(); }
@@ -1077,7 +1085,7 @@
   function lotFinCnt(lot){
     var d = IDX.data, o = {paint:0, coat:0}; if (!d || !d.lr) return null;
     var li = d.lots.indexOf(lot); if (li < 0) return o;
-    for (var i = 0; i < d.lr.li.length; i++) if (d.lr.li[i] === li) { var k = finKind({lot:lot, b1:d.lr.b[i], cp:d.lr.c[i], mat:d.lr.m[i]}); if (k) o[k]++; }
+    for (var i = 0; i < d.lr.li.length; i++) if (d.lr.li[i] === li) { var k = finKind({lot:lot, b1:d.lr.b[i], cp:d.lr.c[i], mat:d.lr.m[i]}); if (k) o[k]++; }   // v31 ไม่มีชื่อชิ้น = ไม่เทียบชื่อ
     return o;
   }
   function lotFinTxt(){
@@ -1086,18 +1094,31 @@
     el.hidden = false; el.className = c.paint || c.coat ? "" : "none";
     el.textContent = c.paint || c.coat ? "Lot นี้มี " + [c.coat ? "✨ งานเคลือบ " + c.coat + " ชิ้น" : "", c.paint ? "🎨 งานทำสี " + c.paint + " ชิ้น" : ""].filter(Boolean).join(" · ") + " (ไม่ปิดขอบ)" : "Lot นี้ไม่มีงานสี / เคลือบ";
   }   // 09:55 Proj Name แทนชื่อตู้ · 07:51 + ชนิด
+  /* v31: ไฟล์ไม่มีช่อง bp → จับด้วยเลข P… ท้าย Code Part (PD…-P12 → P12) ใน Lot เดียวกัน · เลขซ้ำ (หลาย PD) ใช้ได้เมื่อค่าใน fstyle เหมือนกันทุกแถว
+       และจำนวนเท่ากับในรายชิ้น · ชื่อชิ้นเทียบเฉพาะ a-z 0-9 (CSV ของ Cut Rite ไม่ใช่ UTF-8) */
+  function fsPid(K, hit){
+    if (!FS.p || !hit.cp) return null;
+    var pid = norm(String(hit.cp).split("-").pop()), e = pid ? FS.p[K + "|" + pid] : null; if (!e || e.x) return null;
+    var d = IDX.data; if (!d || !d.lr) return null;
+    if (FS.ipcD !== d) { FS.ipc = {}; FS.ipcD = d; }
+    var c = FS.ipc[K]; if (!c) { c = FS.ipc[K] = {}; var li = d.lots.indexOf(hit.lot); for (var i = 0; i < d.lr.li.length; i++) if (d.lr.li[i] === li && d.lr.c[i]) { var q = norm(String(d.lr.c[i]).split("-").pop()); c[q] = (c[q] || 0) + 1; } }
+    if (e.c !== c[pid]) return null;
+    var n1 = String(e.n || "").toLowerCase().replace(/[^a-z0-9]+/g, ""), n2 = String(hit.nm || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+    return !n1 || !n2 || n1 === n2 ? e : null;
+  }
   /* ชนิดของชิ้น: "paint" · "coat" · "" (ไม่ต้อง) · null = ยังไม่รู้ (ยังไม่มี fstyle.csv) */
   function finKind(hit){
     if (!hit) return null;
-    var K = norm(hit.lot), fs = "";
+    var K = norm(hit.lot), fs = "", pe = null;
     if (FS.m) [hit.b1, hit.cp, hit.bc].forEach(function(b){ b = norm(b); if (!fs && b) fs = FS.m[K + "|" + b] || ""; });
+    if (FS.m && !fs) { pe = fsPid(K, hit); if (pe) fs = pe.f || ""; }   // v31
     /* 2026-10-27 10:10 ผู้ใช้: “งานสีจะดูที่ผิวบนล่างของชิ้นนั้น ๆ … บางไม้มันออก Frontstyle ได้ แต่ชิ้นนั้นมันไม่ได้ทำสี” (ตรงกับ StarStock lots 1.60)
        เดิม: FrontStyle มี N00S = สีก่อนทุกอย่าง · ไม้ 34N (ที่ไหนก็ได้ในรหัส) ใน Lot MU/HG = สี
        ตอนนี้: ผิวบน (ตัวที่ 5–13) หรือผิวล่าง (14–22) ของ Material Code เป็น 34N + (Lot MU/HG หรือ FrontStyle N00S) = สี
          ไม้ดิบสองด้าน (MD25xxxxxxxxNxxxxxxxxN Inner Box) ที่ FrontStyle N00S = ไม่ใช่สี */
     var mat = String(hit.mat || "").trim(), sf = /^([A-Z]{2}\d{2})([A-Z0-9]{9})([A-Z0-9]{9})$/i.exec(mat), s34 = !!sf && (FIN_S34.test(sf[2]) || FIN_S34.test(sf[3]));
     /* 2026-10-27 10:40 ผู้ใช้ 10:24 “2 ตัวนี้ครับ ผิวบน ล่าง” (Cut Rite SurfaceBeforeCutTopCode / BottomCode): Lot ที่มีผิวจาก StarSync v1.24 = ผิวบนหรือล่างขึ้นต้น N00S = สี · ยังไม่มี = กติกา 10:10 (ผิว 34N) */
-    var cs = null; if (FS.sfl && FS.sfl[K]) { cs = [sf ? sf[2] : "", sf ? sf[3] : ""]; [hit.b1, hit.cp, hit.bc].forEach(function(b){ b = norm(b); var x = b && FS.sf[K + "|" + b]; if (x) cs = [x[0] || cs[0], x[1] || cs[1]]; }); }
+    var cs = null; if (FS.sfl && FS.sfl[K]) { cs = [sf ? sf[2] : "", sf ? sf[3] : ""]; [hit.b1, hit.cp, hit.bc].forEach(function(b){ b = norm(b); var x = b && FS.sf[K + "|" + b]; if (x) cs = [x[0] || cs[0], x[1] || cs[1]]; }); if (pe && (pe.s[0] || pe.s[1])) cs = [pe.s[0] || cs[0], pe.s[1] || cs[1]]; }   // v31 + ผิวจากเลข P…
     if (cs) { if (/^N00S/i.test(cs[0]) || /^N00S/i.test(cs[1])) return "paint"; }
     else if (s34 && (FIN_NAME.test(hit.lot) || FIN_PAINT.test(fs))) return "paint";
     if (FIN_COAT.test(fs)) { hit.bw = sf ? (/^x{8}/i.test(sf[2]) ? 0 : 1) + (/^x{8}/i.test(sf[3]) ? 0 : 1) === 2 : false; return "coat"; }   // 11:49 + ⚠ BOM อาจผิด (FrontShape M แต่ไม้ไม่เปลือยสักหน้า)

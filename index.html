@@ -1050,10 +1050,10 @@
     throw new Error("มีคนบันทึกพร้อมกันหลายครั้ง ลองใหม่อีกที");
   }
   /* 2026-10-26 18:23: Lot ยังมีข้อมูลไหม (ขั้นทั้ง Lot หรือ ห่อที่ตรวจรับแล้ว) · ตัด Lot ที่ยิงล่าสุดเกิน 400 วัน (ไฟล์ไม่โตไม่หยุด) */
-  function lotKeep(e){ return !!e && (Object.keys(STEP).some(function(k){ return e[k]; }) || (e.sitePk && Object.keys(e.sitePk).length > 0)); }
+  function lotKeep(e){ return !!e && (Object.keys(STEP).some(function(k){ return e[k]; }) || (e.sitePk && Object.keys(e.sitePk).length > 0) || (e.ov && Object.keys(e.ov).length > 0)); }   // 2026-10-27 08:10 + ov (StarStock lots 1.51 ADMIN แก้สถานะรายชิ้น — ห้ามลบทิ้งตอนยกเลิกขั้นอื่น)
   function stepsPrune(base){
     var old = Date.now() - 400 * 86400000;
-    Object.keys(base.lots).forEach(function(x){ var v = base.lots[x], last = Object.keys(STEP).map(function(k){ return v[k]; }).concat(v.sitePk ? Object.keys(v.sitePk).map(function(c){ return v.sitePk[c]; }) : []).filter(Boolean).map(function(s){ return Date.parse(s.at) || 0; });
+    Object.keys(base.lots).forEach(function(x){ var v = base.lots[x], last = Object.keys(STEP).map(function(k){ return v[k]; }).concat(v.sitePk ? Object.keys(v.sitePk).map(function(c){ return v.sitePk[c]; }) : [], v.ovAt ? [{at:v.ovAt}] : []).filter(Boolean).map(function(s){ return Date.parse(s.at) || 0; });
       if (last.length && Math.max.apply(null, last) < old) delete base.lots[x]; });
   }
   function stepSave(k, hit, undo){ var w = {}; w[k] = !undo; return stepSaveMany(hit, w); }   // ชื่อเดิม (ทีละขั้น)

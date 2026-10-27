@@ -311,6 +311,13 @@
 <input type="file" id="photoInput" accept="image/*" capture="environment" hidden>
 <input type="file" id="galleryInput" accept="image/*" hidden>
 
+<!-- 2026-10-27 08:20 ผู้ใช้: “ปุ่มกล้องเพื่อไปถ่าย แล้วพอกดติ๊กถูก ให้มีหน้ารอโหลดไว้ด้วยครับ เดี๋ยวคนงง” — อ่านรูปที่ถ่าย/เลือก (รูปใหญ่ 1–3 วิ) -->
+<div class="cover" id="reading" hidden>
+  <div class="spin"></div>
+  <h2>กำลังอ่านรูป…</h2>
+  <p>หาบาร์โค้ด / QR ในรูป รอสักครู่</p>
+</div>
+
 <div class="cover" id="going" hidden>
   <div class="spin"></div>
   <h2>กำลังเปิดลิงก์…</h2>
@@ -623,6 +630,17 @@
 
   function flash(){ box.classList.add("hit"); setTimeout(function(){ box.classList.remove("hit"); }, 500); }
 
+  /* 2026-10-27 08:20 ผู้ใช้: “เมื่อกดดู 3D แล้วให้ย้อนกลับมาที่หน้าสแกน link ได้หรือไม่”
+     เดิม (26/10 17:02): แตะ 3D = เปิดในหน้าเดิม (location.href) — แอปที่ติดตั้งไว้ไม่มีปุ่มย้อนกลับ ต้องปัด/กด Back ของเครื่อง
+     ตอนนี้: แตะปุ่ม 3D (แผง Lot / แผงห่อ) = เปิดหน้า 3D ซ้อนขึ้นมา (window.open) — Android แอปที่ติดตั้ง = แท็บซ้อนมีปุ่ม ✕ ปิดแล้วกลับมาหน้าสแกนเดิม
+       (แผงห่อ ติ๊กที่ทำค้างอยู่ครบ) · iPhone = ปุ่ม “เสร็จสิ้น” · เบราว์เซอร์ปกติ = แท็บใหม่ (กด Back / ปิดแท็บ = กลับมา)
+       เปิดหน้าใหม่ไม่ได้ (เบราว์เซอร์กันป๊อปอัป) = เปิดในหน้าเดิมแบบเดิม · ลิงก์จาก Data Matrix ที่กล้องอ่านเอง = หน้าเดิมเหมือนเดิม */
+  function go3d(url){
+    var w = null;
+    try { w = window.open(url, "_blank"); } catch (e) { w = null; }
+    if (w) { try { w.opener = null; } catch (e) {} toast("เปิดหน้า 3D แล้ว — ปิดหน้านั้น (✕ / เสร็จสิ้น / Back) เพื่อกลับมาสแกนต่อ"); return; }
+    go(url);
+  }
   function go(url){
     if (going) return;
     going = true; flash();
@@ -708,17 +726,22 @@
     scanning = false; token++;
     hide("err"); hide("tap");
     setStatus("กำลังอ่านรูป…", "warn");
-    var found = false;
+    show("reading"); await sleep(30);   // 2026-10-27 08:20 หน้ารอ (ให้จอวาดก่อนเริ่มอ่าน — อ่านรูปใหญ่ทำให้จอค้างชั่วครู่)
+    var found = false, res0 = null;
     try {
       await loadLib();
-      found = handle(await decodeFile(f));
+      res0 = await decodeFile(f);
+      hide("reading");   // ปิดก่อน alert / แผงผล
+      found = handle(res0);
       if (false /* 07:38 โหมดเดียว เปิดลิงก์ได้แล้ว — เดิม: !found && MODE === "st" && onlyLink */) alert("โหมดสถานะ: ในรูปมีแต่ Data Matrix / QR ที่เป็นลิงก์ (3D)\nถ่ายให้เห็นบาร์โค้ดเส้นของชิ้นงาน หรือสลับเป็นโหมด 🧊 ดู 3D");
       else if (!found) alert(fromGallery
         ? "ไม่พบโค้ดในรูปนี้\nเลือกรูปที่เห็นโค้ดชัด ๆ ไม่เบลอ (ซูมเข้าใกล้โค้ดได้ยิ่งดี)"
         : "ไม่พบโค้ดในรูป\nลองถ่ายใหม่ให้ใกล้ขึ้นและไม่เบลอ");
     } catch (e) {
+      hide("reading");
       alert("เปิดรูปนี้ไม่ได้ ลองเลือกรูปอื่น");
     }
+    hide("reading");
     if (going) return;
     if (errShown || tapShown) {           // ยังไม่ได้เปิดกล้องสด → ไม่เปิดเอง
       if (found) setStatus("อ่านจากรูป", "ok"); else show(errShown ? "err" : "tap");
@@ -788,7 +811,7 @@
   var STEP = {edge:{h:"Edge", th:"ปิดขอบ", b:"stepEdge"}, paint:{h:"สี", th:"รับเข้าทำสี", b:"stepPaint", rx:1}, coat:{h:"เคลือบ", th:"รับเข้าเคลือบ", b:"stepCoat", rx:1},
               drill:{h:"Drill", th:"เจาะ", b:"stepDrill"}, site:{h:"Site", th:"ถึงไซต์", b:"stepSite"}};
   var BY_KEY = "scanlink_by", BY_ASKED = "scanlink_by_asked", DEV_KEY = "scanlink_dev";
-  var IDX_FV = 7;   // 2026-10-27 07:51: 7 = + รหัสไม้ (mat) ราย entry (ชิ้นสี 34N / ชิ้นเคลือบผิวดิบ)   // 2026-10-27 07:38: 6 = + Code Part / Barcode / OrderNumber / Product Article ราย entry (ปุ่ม 3D ในแผง Lot)            // รูปแบบดัชนีที่จำในเครื่อง: 2 = Code Part + Barcode · 3 = + Proj Name ราย Lot · 4 = + Code Pack รายชิ้น (2026-10-26 17:02) · 5 = + OrderNumber รายชิ้น (17:38) (เปลี่ยนเลข = สร้างใหม่ทุกเครื่อง)
+  var IDX_FV = 8;   // 2026-10-27 08:20: 8 = + RecId ของชิ้นในห่อ (ล้างที่ ADMIN แก้ช่อง Site)   // 2026-10-27 07:51: 7 = + รหัสไม้ (mat) ราย entry (ชิ้นสี 34N / ชิ้นเคลือบผิวดิบ)   // 2026-10-27 07:38: 6 = + Code Part / Barcode / OrderNumber / Product Article ราย entry (ปุ่ม 3D ในแผง Lot)            // รูปแบบดัชนีที่จำในเครื่อง: 2 = Code Part + Barcode · 3 = + Proj Name ราย Lot · 4 = + Code Pack รายชิ้น (2026-10-26 17:02) · 5 = + OrderNumber รายชิ้น (17:38) (เปลี่ยนเลข = สร้างใหม่ทุกเครื่อง)
   var IDX = {map:null, lots:null, nm:null, cab:null, u:0, at:"", rows:0, nLots:0, loading:null, checked:0, err:null, info:null};
   var CUR = null;            // แผงที่เปิดอยู่: {t, hit, entry, busy}
   var hold = false;          // เจอ Lot แล้ว = หยุดสแกนจนกว่าจะกด “สแกนต่อ”
@@ -891,7 +914,7 @@
     var iL = h.indexOf("lot"), iN = h.indexOf("nm"), iC = h.indexOf("cab"), iB = h.indexOf("bc1"), iP = h.indexOf("cpt"), iJ = h.indexOf("pjn"), lp = [];   // 09:55 + Proj Name ราย Lot
     /* 2026-10-26 17:02: + Code Pack (pack) · ขนาด (l × w) · มีขนาด (sz 1 = ชิ้นไม้ / 0 = อุปกรณ์) · Product Article (art) — ไว้ทำรายการชิ้นใน Pack */
     var iK = h.indexOf("pack"), iS = h.indexOf("sz"), iX = h.indexOf("l"), iY = h.indexOf("w"), iA = h.indexOf("art"), iO = h.indexOf("ord");   // 17:38 + ord (OrderNumber · StarSync v1.17)
-    var pk = [], pkIx = {}, pr = {k:[], li:[], cp:[], bc:[], nm:[], cab:[], l:[], w:[], sz:[], od:[]};
+    var pk = [], pkIx = {}, pr = {k:[], li:[], cp:[], bc:[], nm:[], cab:[], l:[], w:[], sz:[], od:[], rc:[]}, iR = h.indexOf("rec");   // 08:20 + rc (RecId)
     if (iL < 0 || (iB < 0 && iP < 0)) throw new Error("ไฟล์ " + INFO_F + " ไม่มีช่อง lot / cpt / bc1");
     var eP = [], eB = [], eO = [], eA = [], eM = [], iM = h.indexOf("mat");   // 07:51 + eM รหัสไม้   // 2026-10-27 07:38 ราย entry: Code Part · Barcode · OrderNumber · Product Article
     var bcs = [], li = [], nm = [], cab = [], lots = [], lotIx = {}, pv = {L:"", N:"", C:"", B:"", P:"", J:"", K:"", S:"", X:"", Y:"", A:"", O:"", M:""};
@@ -908,7 +931,7 @@
       [P, B].forEach(function(v){ var k = String(v || "").trim().toUpperCase(); if (!k || k === "MANUAL") return; bcs.push(k); li.push(ix); nm.push(N); cab.push(C); eP.push(String(P || "").trim()); eB.push(String(B || "").trim()); eO.push(String(O || "").trim()); eA.push(A); eM.push(M); });   // 07:38 + eP/eB/eO/eA · 07:51 + eM
       var kk = String(K || "").trim().toUpperCase();   // 17:02 ชิ้นนี้อยู่ Pack ไหน
       if (kk && kk !== "MANUAL") { var pi = pkIx[kk]; if (pi == null) { pi = pkIx[kk] = pk.length; pk.push(kk); }
-        pr.k.push(pi); pr.li.push(ix); pr.cp.push(String(P || "").trim()); pr.bc.push(String(B || "").trim()); pr.nm.push(N); pr.cab.push(A || C); pr.l.push(X); pr.w.push(Y); pr.sz.push(S); pr.od.push(String(O || "").trim()); }
+        pr.k.push(pi); pr.li.push(ix); pr.cp.push(String(P || "").trim()); pr.bc.push(String(B || "").trim()); pr.nm.push(N); pr.cab.push(A || C); pr.l.push(X); pr.w.push(Y); pr.sz.push(S); pr.od.push(String(O || "").trim()); pr.rc.push(iR >= 0 ? String(a[iR] || "").trim() : ""); }
     }
     return {bcs:bcs, li:li, nm:nm, cab:cab, lots:lots, lp:lp, cp: iP >= 0, pk:pk, pr:pr, eP:eP, eB:eB, eO:eO, eA:eA, eM:eM, fv: IDX_FV};
   }
@@ -1031,7 +1054,7 @@
       var at = nowIso(), rec = {at:at, by:myName(), bc:hit.bc, dev:devId()};
       Object.keys(want).forEach(function(k){
         if (want[k] && !e[k]) e[k] = Object.assign({}, rec);
-        else if (!want[k] && e[k]) delete e[k];
+        else if (!want[k] && e[k]) { delete e[k]; ovClear(e, OVK[k]); }   // 2026-10-27 08:20 ยกเลิก = ล้างที่ ADMIN แก้ของขั้นนี้ทั้ง Lot ด้วย
         else return;   // มีคนทำแบบเดียวกันไว้แล้ว
         n++; cur.base.hist.unshift({t: want[k] ? "ยิง" : "ยกเลิก", step:k, lot:hit.lot, at:at, by:rec.by, bc:hit.bc, nm:hit.nm || "", dev:rec.dev});
       });
@@ -1050,6 +1073,17 @@
     throw new Error("มีคนบันทึกพร้อมกันหลายครั้ง ลองใหม่อีกที");
   }
   /* 2026-10-26 18:23: Lot ยังมีข้อมูลไหม (ขั้นทั้ง Lot หรือ ห่อที่ตรวจรับแล้ว) · ตัด Lot ที่ยิงล่าสุดเกิน 400 วัน (ไฟล์ไม่โตไม่หยุด) */
+  /* ───────── 2026-10-27 08:20 ผู้ใช้: “ไม่ครับ ให้คนอื่นยังยกเลิกได้เหมือนเดิมครับ ผม edge Drill สี/เคลือบ กับ Site” ─────────
+     StarStock lots 1.51: ADMIN แก้สถานะรายชิ้น = lots[LOT].ov { edge | fin | drill | si: { RecId: 1 / 0 } } — ทับทุกที่มา
+     → ยกเลิกใน Scan-Link แล้วชิ้นที่ ADMIN ติ๊กไว้ยังขึ้น ✓ (ยกเลิกไม่ได้ผล) · ตอนนี้: ยกเลิกขั้นไหน = ล้างที่ ADMIN แก้ของขั้นนั้นทั้ง Lot
+       (สี / เคลือบ = ขั้น fin) · ตรวจรับห่อ (บันทึก / ยกเลิก) = ล้างที่ ADMIN แก้ช่อง Site ของชิ้นในห่อนั้น (คนหน้างานตรวจเองแล้ว) */
+  var OVK = {edge:"edge", drill:"drill", paint:"fin", coat:"fin", site:"si"};
+  function ovClear(e, k, recs){
+    if (!e || !e.ov || !k || !e.ov[k]) return;
+    if (recs) recs.forEach(function(r){ if (r) delete e.ov[k][r]; }); else delete e.ov[k];
+    if (e.ov[k] && !Object.keys(e.ov[k]).length) delete e.ov[k];
+    if (!Object.keys(e.ov).length) { delete e.ov; delete e.ovAt; delete e.ovBy; }
+  }
   function lotKeep(e){ return !!e && (Object.keys(STEP).some(function(k){ return e[k]; }) || (e.sitePk && Object.keys(e.sitePk).length > 0) || (e.ov && Object.keys(e.ov).length > 0)); }   // 2026-10-27 08:10 + ov (StarStock lots 1.51 ADMIN แก้สถานะรายชิ้น — ห้ามลบทิ้งตอนยกเลิกขั้นอื่น)
   function stepsPrune(base){
     var old = Date.now() - 400 * 86400000;
@@ -1161,8 +1195,7 @@
   $("lot3d").onclick = function(){
     if (!CUR || !CUR.ref) return; var c = ORD3D[CUR.ref.ord];
     if (c && c.st === "none") { toast("ออเดอร์ " + CUR.ref.ord + " ยังไม่มีงาน 3D บน GitHub — ส่งลิงก์จาก StarNexus ก่อน"); return; }
-    if (CUR && pendOf().length && !confirm("ยังไม่ได้บันทึก " + pendOf().map(function(k){ return STEP[k].h; }).join(" / ") + "\nไปดู 3D เลย?")) return;
-    go(part3d(CUR.ref));
+    go3d(part3d(CUR.ref));   // 2026-10-27 08:20 เปิดซ้อน = แผงนี้ยังอยู่ (ไม่ต้องถามเรื่องยังไม่บันทึกแล้ว)
   };
   $("stepEdge").onclick = function(){ onStep("edge"); };
   $("stepPaint").onclick = function(){ onStep("paint"); };   // 2026-10-26 16:35
@@ -1231,7 +1264,7 @@
     if (j == null) return null;
     var d = IDX.data, pr = d.pr;
     return {code:d.pk[j], rows:IDX.prow[j].map(function(r){ var x = pr.li[r];
-      return {cp:pr.cp[r], bc:pr.bc[r], nm:pr.nm[r], cab:pr.cab[r], l:pr.l[r], w:pr.w[r], sz:pr.sz[r], od:pr.od ? pr.od[r] : "", lot:d.lots[x], pj:(d.lp && d.lp[x]) || ""}; })};
+      return {cp:pr.cp[r], bc:pr.bc[r], nm:pr.nm[r], cab:pr.cab[r], l:pr.l[r], w:pr.w[r], sz:pr.sz[r], od:pr.od ? pr.od[r] : "", rc:pr.rc ? pr.rc[r] : "", lot:d.lots[x], pj:(d.lp && d.lp[x]) || ""}; })};   // 08:20 + rc
   }
   /* ───────── 17:38 ผู้ใช้ (รูป Pack PD69000045189-PD06_2 “1 ชิ้น · อุปกรณ์ 11”): “มันไม่ใช่อุปกรณ์ครับ มันคือตู้ … อยากให้ชิ้นในตู้มันกดเข้าไปที่ชิ้นได้ เช่น 3D ด้านหลัง
        ของชิ้นนั้น พอกดไปก็เข้าของชิ้นนั้น · อันนี้คือ 1 pack มี 11 ชิ้น ประมาณนี้” ─────────
@@ -1344,8 +1377,8 @@
     var x = PK.rows[+(b3 ? b.dataset.p3d : b.dataset.pk)]; if (!x || !x.ref) return;
     var c = ORD3D[x.ref.ord];
     if (c && c.st === "none") { toast("ออเดอร์ " + x.ref.ord + " ยังไม่มีงาน 3D บน GitHub — ส่งลิงก์จาก StarNexus ก่อน"); return; }
-    PK.last = x.key; pkSave();
-    go(part3d(x.ref));
+    PK.last = x.key; pkSave(); packListDraw(); packNote();   // แถบเขียว = ชิ้นที่เพิ่งดู
+    go3d(part3d(x.ref));   // 2026-10-27 08:20 เปิดซ้อน (เดิม go = หน้าเดิม)
   });
   /* ───────── 2026-10-26 18:23–18:26 ผู้ใช้ (รูปแผง Pack PD69000045189-PD06_2 · ใบปะห่อ “ใบส่งสินค้าเข้าคลัง” บาร์โค้ด Code Pack):
        “แก้ของ Site ให้สแกน pack แล้วติ๊กสถานะ ก็ให้ pack นั้นเขียว โดยให้ site ต้องตรวจ part ก่อนจะติ๊ก ให้ครบในห่อก่อนกดยืนยันสถานะ”
@@ -1435,6 +1468,7 @@
         var cur = await stepsRead(), at = rec ? rec.at : nowIso();
         lots.forEach(function(l){ var K = norm(l), e = cur.base.lots[K] || {lot:l};
           if (rec) { e.sitePk = e.sitePk || {}; e.sitePk[my.code] = rec; } else if (e.sitePk) { delete e.sitePk[my.code]; if (!Object.keys(e.sitePk).length) delete e.sitePk; }
+          ovClear(e, "si", my.rows.filter(function(x){ return x.r.lot === l; }).map(function(x){ return x.r.rc; }));   // 08:20 ตรวจห่อเอง = ล้างที่ ADMIN แก้ช่อง Site ของชิ้นในห่อ
           if (lotKeep(e)) { e.lot = l; cur.base.lots[K] = e; } else delete cur.base.lots[K];
           cur.base.hist.unshift({t: rec ? (ms.length ? "ตรวจห่อ (ขาด)" : "ตรวจห่อ (ครบ)") : "ยกเลิก", step:"site", pack:my.code, lot:l, at:at, by:myName(), n:n, ok:got, dev:devId()}); });
         cur.base.hist = cur.base.hist.slice(0, 2000); stepsPrune(cur.base);

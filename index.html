@@ -186,6 +186,7 @@
   #lot3d{width:100%;height:46px;margin:0 0 12px;border-radius:14px;background:var(--ok);color:#06210f;font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:6px}
   #lot3d.no3d{background:rgba(255,255,255,.14);color:var(--muted)}
   #lot3d[hidden]{display:none}
+  .stepbtns .step[hidden]{display:none}   /* 2026-10-27 07:51 ปุ่มสี / เคลือบ เฉพาะชิ้นที่เป็นงานนั้น */
   #sheet.st:not(.lot):not(.pack) #copyBtn{display:inline-flex}   /* โค้ดที่ไม่ใช่ชิ้นงาน/ห่อ = คัดลอกได้เหมือนเดิม */
   /* ───────── 2026-10-26 17:02: ยิงบาร์โค้ด Pack → รายการชิ้นใน Pack → แตะชิ้น = ดู 3D ───────── */
   #packBox{margin:0 0 10px}
@@ -787,7 +788,7 @@
   var STEP = {edge:{h:"Edge", th:"ปิดขอบ", b:"stepEdge"}, paint:{h:"สี", th:"รับเข้าทำสี", b:"stepPaint", rx:1}, coat:{h:"เคลือบ", th:"รับเข้าเคลือบ", b:"stepCoat", rx:1},
               drill:{h:"Drill", th:"เจาะ", b:"stepDrill"}, site:{h:"Site", th:"ถึงไซต์", b:"stepSite"}};
   var BY_KEY = "scanlink_by", BY_ASKED = "scanlink_by_asked", DEV_KEY = "scanlink_dev";
-  var IDX_FV = 6;   // 2026-10-27 07:38: 6 = + Code Part / Barcode / OrderNumber / Product Article ราย entry (ปุ่ม 3D ในแผง Lot)            // รูปแบบดัชนีที่จำในเครื่อง: 2 = Code Part + Barcode · 3 = + Proj Name ราย Lot · 4 = + Code Pack รายชิ้น (2026-10-26 17:02) · 5 = + OrderNumber รายชิ้น (17:38) (เปลี่ยนเลข = สร้างใหม่ทุกเครื่อง)
+  var IDX_FV = 7;   // 2026-10-27 07:51: 7 = + รหัสไม้ (mat) ราย entry (ชิ้นสี 34N / ชิ้นเคลือบผิวดิบ)   // 2026-10-27 07:38: 6 = + Code Part / Barcode / OrderNumber / Product Article ราย entry (ปุ่ม 3D ในแผง Lot)            // รูปแบบดัชนีที่จำในเครื่อง: 2 = Code Part + Barcode · 3 = + Proj Name ราย Lot · 4 = + Code Pack รายชิ้น (2026-10-26 17:02) · 5 = + OrderNumber รายชิ้น (17:38) (เปลี่ยนเลข = สร้างใหม่ทุกเครื่อง)
   var IDX = {map:null, lots:null, nm:null, cab:null, u:0, at:"", rows:0, nLots:0, loading:null, checked:0, err:null, info:null};
   var CUR = null;            // แผงที่เปิดอยู่: {t, hit, entry, busy}
   var hold = false;          // เจอ Lot แล้ว = หยุดสแกนจนกว่าจะกด “สแกนต่อ”
@@ -892,23 +893,24 @@
     var iK = h.indexOf("pack"), iS = h.indexOf("sz"), iX = h.indexOf("l"), iY = h.indexOf("w"), iA = h.indexOf("art"), iO = h.indexOf("ord");   // 17:38 + ord (OrderNumber · StarSync v1.17)
     var pk = [], pkIx = {}, pr = {k:[], li:[], cp:[], bc:[], nm:[], cab:[], l:[], w:[], sz:[], od:[]};
     if (iL < 0 || (iB < 0 && iP < 0)) throw new Error("ไฟล์ " + INFO_F + " ไม่มีช่อง lot / cpt / bc1");
-    var eP = [], eB = [], eO = [], eA = [];   // 2026-10-27 07:38 ราย entry: Code Part · Barcode · OrderNumber · Product Article
-    var bcs = [], li = [], nm = [], cab = [], lots = [], lotIx = {}, pv = {L:"", N:"", C:"", B:"", P:"", J:"", K:"", S:"", X:"", Y:"", A:"", O:""};
+    var eP = [], eB = [], eO = [], eA = [], eM = [], iM = h.indexOf("mat");   // 07:51 + eM รหัสไม้   // 2026-10-27 07:38 ราย entry: Code Part · Barcode · OrderNumber · Product Article
+    var bcs = [], li = [], nm = [], cab = [], lots = [], lotIx = {}, pv = {L:"", N:"", C:"", B:"", P:"", J:"", K:"", S:"", X:"", Y:"", A:"", O:"", M:""};
     var val = function(v, k){ v = v == null ? "" : v; if (v === "^") return pv[k]; if (v.charAt(0) === "=") v = v.slice(1); pv[k] = v; return v; };
     for (var r = 1; r < lines.length; r++) {
       var ln = lines[r]; if (!ln) continue;
       while ((ln.split('"').length - 1) % 2 && r + 1 < lines.length) ln += "\n" + lines[++r];   // ค่าที่มีขึ้นบรรทัดใหม่
       var a = csvLine(ln), L = val(a[iL], "L"), N = iN >= 0 ? val(a[iN], "N") : "", C = iC >= 0 ? val(a[iC], "C") : "", B = iB >= 0 ? val(a[iB], "B") : "", P = iP >= 0 ? val(a[iP], "P") : "";
+      var M = iM >= 0 ? val(a[iM], "M") : "";   // 07:51 รหัสไม้ (^ = แถวบน)
       var K = iK >= 0 ? val(a[iK], "K") : "", S = iS >= 0 ? val(a[iS], "S") : "", X = iX >= 0 ? val(a[iX], "X") : "", Y = iY >= 0 ? val(a[iY], "Y") : "", A = iA >= 0 ? val(a[iA], "A") : "", O = iO >= 0 ? val(a[iO], "O") : "";   // 17:02 อ่านทุกแถว (^ = แถวบน) · 17:38 + O
       if (!L) continue;
       var ix = lotIx[L]; if (ix == null) { ix = lotIx[L] = lots.length; lots.push(L); lp.push(""); }
       if (iJ >= 0 && !lp[ix]) { var J = val(a[iJ], "J"); if (J) lp[ix] = J; } else if (iJ >= 0) val(a[iJ], "J");   // ^ ต้องอ่านทุกแถว (ซ้ำแถวบน)
-      [P, B].forEach(function(v){ var k = String(v || "").trim().toUpperCase(); if (!k || k === "MANUAL") return; bcs.push(k); li.push(ix); nm.push(N); cab.push(C); eP.push(String(P || "").trim()); eB.push(String(B || "").trim()); eO.push(String(O || "").trim()); eA.push(A); });   // 07:38 + eP/eB/eO/eA
+      [P, B].forEach(function(v){ var k = String(v || "").trim().toUpperCase(); if (!k || k === "MANUAL") return; bcs.push(k); li.push(ix); nm.push(N); cab.push(C); eP.push(String(P || "").trim()); eB.push(String(B || "").trim()); eO.push(String(O || "").trim()); eA.push(A); eM.push(M); });   // 07:38 + eP/eB/eO/eA · 07:51 + eM
       var kk = String(K || "").trim().toUpperCase();   // 17:02 ชิ้นนี้อยู่ Pack ไหน
       if (kk && kk !== "MANUAL") { var pi = pkIx[kk]; if (pi == null) { pi = pkIx[kk] = pk.length; pk.push(kk); }
         pr.k.push(pi); pr.li.push(ix); pr.cp.push(String(P || "").trim()); pr.bc.push(String(B || "").trim()); pr.nm.push(N); pr.cab.push(A || C); pr.l.push(X); pr.w.push(Y); pr.sz.push(S); pr.od.push(String(O || "").trim()); }
     }
-    return {bcs:bcs, li:li, nm:nm, cab:cab, lots:lots, lp:lp, cp: iP >= 0, pk:pk, pr:pr, eP:eP, eB:eB, eO:eO, eA:eA, fv: IDX_FV};
+    return {bcs:bcs, li:li, nm:nm, cab:cab, lots:lots, lp:lp, cp: iP >= 0, pk:pk, pr:pr, eP:eP, eB:eB, eO:eO, eA:eA, eM:eM, fv: IDX_FV};
   }
   function useIndex(d){
     var m = new Map();
@@ -939,6 +941,7 @@
         if (!IDX.map) { var sv = await idbGet("pinfo"); if (sv && sv.bcs && sv.fv === IDX_FV) { useIndex(sv); ch = true; refreshSheet(); } }   // รูปแบบเก่า (ก่อน Code Part) = สร้างใหม่
         var o = await gas({a:"fsList", p:LOT_DIR, since:0, inl:0});
         var f = (o.files || []).filter(function(x){ return x.n === INFO_F && !x.d; })[0];
+        try { await fsLoad((o.files || []).filter(function(x){ return x.n === FS_F && !x.d; })[0]); } catch (e2) { console.warn("Scan-Link: อ่าน lots/fstyle.csv ไม่ได้", e2); }   // 2026-10-27 07:51
         IDX.checked = Date.now();
         if (!f) { IDX.err = new Error("ยังไม่มีไฟล์ " + LOT_DIR + "/" + INFO_F + " บน Drive (StarSync v1.16 ส่งทุก 5 นาที)"); return ch; }
         if (f.u !== IDX.u || !IDX.map || (IDX.data && IDX.data.fv !== IDX_FV)) {
@@ -955,6 +958,52 @@
     return IDX.loading;
   }
   function norm(t){ return String(t || "").trim().toUpperCase(); }
+  /* ───────── 2026-10-27 07:51 ผู้ใช้ (รูปแผง Lot ของ FOREST-2026-0017 P50 Back Panel มีปุ่ม สี / เคลือบ): “ชิ้นที่ผมแสกนมันไม่มีงานเคลือบ / ทำสีครับ ให้เอาออก
+       และชิ้นไหนเคลือบก็ขึ้นเคลือบ ชิ้นไหนทำสีก็ขึ้นทำสีครับ สถานะ” ─────────
+     เดิม (26/10 16:35): ปุ่ม สี + เคลือบ ขึ้นทุกชิ้น
+     ตอนนี้: ชนิดของชิ้น (finKind · กฎเดียวกับ StarStock lots 1.45/1.47 pstFinKind)
+       สี = FrontStyle มี N00S · หรือไม้ 34N (N01M0034) ใน Lot ชื่อ MU / HG
+       เคลือบ = FrontStyle ขึ้นต้น FrontShape:M · หรือ Lot ที่ไม่มี FrontStyle เลย + ไม้ผิวดิบ 1 ด้าน + อีกด้านเมลามีน (MD19N01M0029NxxxxxxxxN)
+       → แผง Lot ขึ้นเฉพาะปุ่มของชนิดนั้น · ไม่ใช่ทั้งสอง = ไม่มีปุ่ม สี / เคลือบ · ยังโหลด fstyle.csv ไม่ได้ = ขึ้นทั้งสองแบบเดิม
+     FrontStyle = lots/fstyle.csv (StarSync v1.22 · v1.23 + Lot ที่จบแล้ว) จับด้วย Lot + Barcode 1/2 · จำในเครื่อง (IndexedDB) โหลดใหม่เมื่อไฟล์เปลี่ยน */
+  var FS_F = "fstyle.csv", FS = {m:null, lots:null, u:0};
+  var FIN_PAINT = /N00S/i, FIN_COAT = /FrontShape:\s*M/i, FIN_34 = /N01M0034/i, FIN_NAME = /(?:^|[_\-\s])(?:HG|MU)(?![A-Za-z])/i;
+  var FIN_MATCOAT = /^[A-Z]{2}\d\d(?:[NG]\d\dM\d{4}[A-Z]x{8}[A-Z]|x{8}[A-Z][NG]\d\dM\d{4}[A-Z])$/i;
+  function fsParse(text){
+    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+    var lines = text.split(/\r?\n/), h = csvLine(lines[0] || "").map(function(x){ return x.trim().toLowerCase(); });
+    var iL = h.indexOf("lot"), i1 = h.indexOf("bc1"), i2 = h.indexOf("bc2"), iF = h.indexOf("fs"), m = {}, lots = {}, lot = "";
+    if (iL < 0 || iF < 0) return null;
+    for (var r = 1; r < lines.length; r++) { var ln = lines[r]; if (!ln) continue;
+      while ((ln.split('"').length - 1) % 2 && r + 1 < lines.length) ln += "\n" + lines[++r];
+      var a = csvLine(ln), l0 = a[iL] || ""; if (l0 === "^") l0 = lot; else if (l0.charAt(0) === "=") l0 = l0.slice(1); lot = l0;
+      var fs = a[iF] || ""; if (fs.charAt(0) === "=") fs = fs.slice(1); if (!l0 || !fs) continue;
+      var K = norm(l0); lots[K] = 1;
+      [a[i1], a[i2]].forEach(function(b){ b = norm(b); if (b && b !== "MANUAL") m[K + "|" + b] = fs; }); }
+    return {m:m, lots:lots};
+  }
+  async function fsLoad(f){
+    if (!FS.m) { var sv = await idbGet("fstyle"); if (sv && sv.m) { FS.m = sv.m; FS.lots = sv.lots; FS.u = sv.u; } }
+    if (!f || f.u === FS.u) return;
+    var rf = await readFile(LOT_DIR, FS_F); if (!rf) return;
+    var d = fsParse(rf.text); if (!d) return;
+    FS.m = d.m; FS.lots = d.lots; FS.u = rf.u; idbPut("fstyle", {m:d.m, lots:d.lots, u:rf.u});
+    if (CUR && CUR.hit) { CUR.fk = finKind(CUR.hit); stepUi(); lotPartTxt(); }
+  }
+  function lotPartTxt(){ if (!CUR || !CUR.hit) return; var hit = CUR.hit; $("lotPart").textContent = [hit.nm, hit.pj || hit.cab, CUR.fk === "paint" ? "🎨 งานทำสี" : CUR.fk === "coat" ? "✨ งานเคลือบ" : ""].filter(Boolean).join(" · "); }   // 09:55 Proj Name แทนชื่อตู้ · 07:51 + ชนิด
+  /* ชนิดของชิ้น: "paint" · "coat" · "" (ไม่ต้อง) · null = ยังไม่รู้ (ยังไม่มี fstyle.csv) */
+  function finKind(hit){
+    if (!hit) return null;
+    var K = norm(hit.lot), fs = "";
+    if (FS.m) [hit.b1, hit.cp, hit.bc].forEach(function(b){ b = norm(b); if (!fs && b) fs = FS.m[K + "|" + b] || ""; });
+    if (FIN_PAINT.test(fs)) return "paint";
+    if (FIN_COAT.test(fs)) return "coat";
+    var mat = String(hit.mat || "").trim();
+    if (FIN_34.test(mat) && FIN_NAME.test(hit.lot)) return "paint";
+    if (!FS.m) return null;
+    if (!fs && FIN_MATCOAT.test(mat) && !FS.lots[K]) return "coat";
+    return "";
+  }
   function lookup(t){
     if (!IDX.map) return null;
     var k = norm(t), i = IDX.map.get(k);
@@ -962,7 +1011,7 @@
     if (i == null) return null;
     var d = IDX.data;
     return {bc:d.bcs[i], lot:d.lots[d.li[i]], nm:d.nm[i], cab:d.cab[i], pj: d.lp ? d.lp[d.li[i]] || "" : "",
-      cp: d.eP ? d.eP[i] : "", b1: d.eB ? d.eB[i] : "", od: d.eO ? d.eO[i] : "", art: d.eA ? d.eA[i] : ""};   // 07:38 ไว้หา 3D ของชิ้น
+      cp: d.eP ? d.eP[i] : "", b1: d.eB ? d.eB[i] : "", od: d.eO ? d.eO[i] : "", art: d.eA ? d.eA[i] : "", mat: d.eM ? d.eM[i] : ""};   // 07:38 ไว้หา 3D ของชิ้น · 07:51 + mat
   }
   function codeLike(t){ t = String(t || "").trim(); return t.length >= 6 && t.length <= 40 && !/\s/.test(t); }
 
@@ -1016,6 +1065,7 @@
     var ld = !CUR || CUR.entry === undefined, busy = !!(CUR && CUR.busy);
     Object.keys(STEP).forEach(function(k){
       var b = $(STEP[k].b), sm = b.querySelector("small"), e = CUR && CUR.entry && CUR.entry[k], w = CUR && CUR.want ? !!CUR.want[k] : !!e, pend = !ld && w !== !!e;
+      b.hidden = !!(STEP[k].rx && CUR && CUR.fk != null && CUR.fk !== k);   // 2026-10-27 07:51 ปุ่มสี / เคลือบ เฉพาะชิ้นชนิดนั้น (ยังไม่รู้ = ขึ้นทั้งคู่)
       b.classList.toggle("done", w); b.classList.toggle("pend", pend); b.classList.toggle("off", pend && !w); b.classList.toggle("busy", busy);
       b.disabled = busy || ld;
       sm.textContent = ld ? "กำลังเช็ค…" : pend ? (w ? "✓ จะติ๊ก — กดบันทึก" : "✕ จะยกเลิก — กดบันทึก")
@@ -1029,7 +1079,7 @@
   function dataTxt(){ return IDX.map ? "ข้อมูลโหลด " + hm(IDX.at) : ""; }   // 09:55 ไม่บอกจำนวน Lot/รหัส
   function renderLot(t){
     var hit = lookup(t);
-    CUR = hit ? {t:t, hit:hit, entry:undefined, want:null, busy:null} : null;
+    CUR = hit ? {t:t, hit:hit, entry:undefined, want:null, busy:null, fk: finKind(hit)} : null;   // 07:51 + fk ชนิดของชิ้น
     $("lotBox").hidden = !hit; $("sheet").classList.toggle("lot", !!hit); $("sheet").classList.toggle("st", MODE === "st");
     $("sheetKind").textContent = hit ? "Lot ผลิต" : "ไม่ใช่ลิงก์";
     if (hit) {
@@ -1037,7 +1087,7 @@
       $("lotName").textContent = hit.lot;
       /* 2026-10-26 09:55 ผู้ใช้: “แสดง Proj Name แทนชื่อตู้” · “เอาที่แสดงข้อมูลกี่ Lot กี่รหัสออก” (เดิม: ชื่อ Part · ชื่อตู้ + บรรทัด “ข้อมูล Lot n Lot · n รหัส · โหลด”)
          ข้อมูลเก่า (ไม่มี Proj Name) = ชื่อตู้แทน */
-      $("lotPart").textContent = [hit.nm, hit.pj || hit.cab].filter(Boolean).join(" · ");
+      lotPartTxt();   // 07:51 + ชนิดของชิ้น
       $("lotData").textContent = ""; showBy(); lotMsg(""); stepUi(); lot3dUi(hit);   // 07:38 + ปุ่ม 3D
       var my = CUR;
       stepsRead().then(function(r){ if (CUR !== my) return; my.entry = r.base.lots[norm(hit.lot)] || {}; my.want = wantOf(my.entry); stepUi(); })

@@ -408,7 +408,7 @@
   /* 2026-10-27 08:26 ผู้ใช้: “เพิ่ม version ตัวแอพสแกนให้ทีจะได้รู้ว่าคนที่ใช้อยู่เวอร์ชั่นไหน”
      → รุ่นแอป = เลขเดียวกับ cache ของ sw.js (scanlink-vNN) — แก้แอปครั้งไหน บวกทั้งสองที่ (APP_VER + CACHE)
        · โชว์หลังชื่อแอปบนหัวจอ · จดลงทุกการบันทึก (steps.json: ยิงขั้น / ตรวจห่อ / hist ช่อง v) — StarStock ดูได้ว่าใครใช้รุ่นไหน */
-  var APP_VER = "v27";   // v27 = 2026-10-27 09:12 ปุ่ม Drill ก่อน สี / เคลือบ (เจาะก่อนทำสี·เคลือบ)   // v26 = 2026-10-27 09:04 ชิ้นเคลือบดูจากรหัสไม้ทุก Lot (เดิมเฉพาะ Lot ที่ไม่มี FrontStyle)   // v25 = 2026-10-27 08:47 เก็บรูปที่ถ่ายลงเครื่อง · Data Matrix ไม่เปิดลิงก์เอง   // v24 = 2026-10-27 08:39 จำนวนชิ้นสี/เคลือบของ Lot · ชิ้นสี/เคลือบไม่มีปุ่ม Edge
+  var APP_VER = "v28";   // v28 = 2026-10-27 10:10 งานสีดูผิวบน/ล่าง 34N (ไม่ใช่ FrontStyle N00S อย่างเดียว)   // v27 = 2026-10-27 09:12 ปุ่ม Drill ก่อน สี / เคลือบ (เจาะก่อนทำสี·เคลือบ)   // v26 = 2026-10-27 09:04 ชิ้นเคลือบดูจากรหัสไม้ทุก Lot (เดิมเฉพาะ Lot ที่ไม่มี FrontStyle)   // v25 = 2026-10-27 08:47 เก็บรูปที่ถ่ายลงเครื่อง · Data Matrix ไม่เปิดลิงก์เอง   // v24 = 2026-10-27 08:39 จำนวนชิ้นสี/เคลือบของ Lot · ชิ้นสี/เคลือบไม่มีปุ่ม Edge
   var FORMATS = ["DataMatrix","QRCode","Code128"];
   var LABEL = {DataMatrix:"Data Matrix",QRCode:"QR Code",Code128:"Code 128"};
   var LIVE_OPTS = {formats:FORMATS, tryHarder:true, tryRotate:true, tryInvert:false, tryDownscale:true, maxNumberOfSymbols:4};
@@ -1045,6 +1045,7 @@
      FrontStyle = lots/fstyle.csv (StarSync v1.22 · v1.23 + Lot ที่จบแล้ว) จับด้วย Lot + Barcode 1/2 · จำในเครื่อง (IndexedDB) โหลดใหม่เมื่อไฟล์เปลี่ยน */
   var FS_F = "fstyle.csv", FS = {m:null, lots:null, u:0};
   var FIN_PAINT = /N00S/i, FIN_COAT = /FrontShape:\s*M/i, FIN_34 = /N01M0034/i, FIN_NAME = /(?:^|[_\-\s])(?:HG|MU)(?![A-Za-z])/i;
+  var FIN_S34 = /^[NG]\d\dM0034/i;   // 2026-10-27 10:10 ผิว 34N (ไม้ทำสี)
   var FIN_MATCOAT = /^[A-Z]{2}\d\d(?:[NG]\d\dM\d{4}[A-Z]x{8}[A-Z]|x{8}[A-Z][NG]\d\dM\d{4}[A-Z])$/i;
   function fsParse(text){
     if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
@@ -1086,10 +1087,13 @@
     if (!hit) return null;
     var K = norm(hit.lot), fs = "";
     if (FS.m) [hit.b1, hit.cp, hit.bc].forEach(function(b){ b = norm(b); if (!fs && b) fs = FS.m[K + "|" + b] || ""; });
-    if (FIN_PAINT.test(fs)) return "paint";
+    /* 2026-10-27 10:10 ผู้ใช้: “งานสีจะดูที่ผิวบนล่างของชิ้นนั้น ๆ … บางไม้มันออก Frontstyle ได้ แต่ชิ้นนั้นมันไม่ได้ทำสี” (ตรงกับ StarStock lots 1.60)
+       เดิม: FrontStyle มี N00S = สีก่อนทุกอย่าง · ไม้ 34N (ที่ไหนก็ได้ในรหัส) ใน Lot MU/HG = สี
+       ตอนนี้: ผิวบน (ตัวที่ 5–13) หรือผิวล่าง (14–22) ของ Material Code เป็น 34N + (Lot MU/HG หรือ FrontStyle N00S) = สี
+         ไม้ดิบสองด้าน (MD25xxxxxxxxNxxxxxxxxN Inner Box) ที่ FrontStyle N00S = ไม่ใช่สี */
+    var mat = String(hit.mat || "").trim(), sf = /^([A-Z]{2}\d{2})([A-Z0-9]{9})([A-Z0-9]{9})$/i.exec(mat), s34 = !!sf && (FIN_S34.test(sf[2]) || FIN_S34.test(sf[3]));
+    if (s34 && (FIN_NAME.test(hit.lot) || FIN_PAINT.test(fs))) return "paint";
     if (FIN_COAT.test(fs)) return "coat";
-    var mat = String(hit.mat || "").trim();
-    if (FIN_34.test(mat) && FIN_NAME.test(hit.lot)) return "paint";
     /* 2026-10-27 09:04 ผู้ใช้ (FOREST-2026-0017 P11 Drawer Front MD19N01M0029NxxxxxxxxN): “ชิ้นนี้ มันงานเคลือบนะ”
        เดิม (v24): ไม้ผิวดิบ 1 ด้าน = เคลือบ เฉพาะ Lot ที่ไม่มี FrontStyle สักชิ้น — StarSync 1.23 ส่ง FrontStyle ของ Lot จบแล้วมา (Lot นี้มีแค่ Color:… บางชิ้น) → ชิ้นเคลือบหาย
        ตอนนี้: ไม่สนว่า Lot มี FrontStyle ไหม (ตรงกับ StarStock lots 1.55) · ไม่ต้องรอ fstyle.csv */

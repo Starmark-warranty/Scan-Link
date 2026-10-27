@@ -408,7 +408,7 @@
   /* 2026-10-27 08:26 ผู้ใช้: “เพิ่ม version ตัวแอพสแกนให้ทีจะได้รู้ว่าคนที่ใช้อยู่เวอร์ชั่นไหน”
      → รุ่นแอป = เลขเดียวกับ cache ของ sw.js (scanlink-vNN) — แก้แอปครั้งไหน บวกทั้งสองที่ (APP_VER + CACHE)
        · โชว์หลังชื่อแอปบนหัวจอ · จดลงทุกการบันทึก (steps.json: ยิงขั้น / ตรวจห่อ / hist ช่อง v) — StarStock ดูได้ว่าใครใช้รุ่นไหน */
-  var APP_VER = "v29";   // v29 = 2026-10-27 10:40 งานสีดูผิวบน/ล่างจาก Cut Rite (fstyle.csv ช่อง st sb · StarSync v1.24)   // v28 = 2026-10-27 10:10 งานสีดูผิวบน/ล่าง 34N (ไม่ใช่ FrontStyle N00S อย่างเดียว)   // v27 = 2026-10-27 09:12 ปุ่ม Drill ก่อน สี / เคลือบ (เจาะก่อนทำสี·เคลือบ)   // v26 = 2026-10-27 09:04 ชิ้นเคลือบดูจากรหัสไม้ทุก Lot (เดิมเฉพาะ Lot ที่ไม่มี FrontStyle)   // v25 = 2026-10-27 08:47 เก็บรูปที่ถ่ายลงเครื่อง · Data Matrix ไม่เปิดลิงก์เอง   // v24 = 2026-10-27 08:39 จำนวนชิ้นสี/เคลือบของ Lot · ชิ้นสี/เคลือบไม่มีปุ่ม Edge
+  var APP_VER = "v30";   // v30 = 2026-10-27 11:49 เคลือบ = FrontShape M (+ ไม้เปลือย) · ⚠ BOM อาจผิด   // v29 = 2026-10-27 10:40 งานสีดูผิวบน/ล่างจาก Cut Rite (fstyle.csv ช่อง st sb · StarSync v1.24)   // v28 = 2026-10-27 10:10 งานสีดูผิวบน/ล่าง 34N (ไม่ใช่ FrontStyle N00S อย่างเดียว)   // v27 = 2026-10-27 09:12 ปุ่ม Drill ก่อน สี / เคลือบ (เจาะก่อนทำสี·เคลือบ)   // v26 = 2026-10-27 09:04 ชิ้นเคลือบดูจากรหัสไม้ทุก Lot (เดิมเฉพาะ Lot ที่ไม่มี FrontStyle)   // v25 = 2026-10-27 08:47 เก็บรูปที่ถ่ายลงเครื่อง · Data Matrix ไม่เปิดลิงก์เอง   // v24 = 2026-10-27 08:39 จำนวนชิ้นสี/เคลือบของ Lot · ชิ้นสี/เคลือบไม่มีปุ่ม Edge
   var FORMATS = ["DataMatrix","QRCode","Code128"];
   var LABEL = {DataMatrix:"Data Matrix",QRCode:"QR Code",Code128:"Code 128"};
   var LIVE_OPTS = {formats:FORMATS, tryHarder:true, tryRotate:true, tryInvert:false, tryDownscale:true, maxNumberOfSymbols:4};
@@ -1072,7 +1072,7 @@
     FS.m = d.m; FS.lots = d.lots; FS.sf = d.sf; FS.sfl = d.sfl; FS.u = rf.u; idbPut("fstyle", {m:d.m, lots:d.lots, sf:d.sf, sfl:d.sfl, u:rf.u, v:2});
     if (CUR && CUR.hit) { CUR.fk = finKind(CUR.hit); stepUi(); lotPartTxt(); }
   }
-  function lotPartTxt(){ if (!CUR || !CUR.hit) return; var hit = CUR.hit; $("lotPart").textContent = [hit.nm, hit.pj || hit.cab, CUR.fk === "paint" ? "🎨 ชิ้นนี้ทำสี" : CUR.fk === "coat" ? "✨ ชิ้นนี้เคลือบ" : ""].filter(Boolean).join(" · "); lotFinTxt(); }
+  function lotPartTxt(){ if (!CUR || !CUR.hit) return; var hit = CUR.hit; $("lotPart").textContent = [hit.nm, hit.pj || hit.cab, CUR.fk === "paint" ? "🎨 ชิ้นนี้ทำสี" : CUR.fk === "coat" ? "✨ ชิ้นนี้เคลือบ" + (hit.bw ? " · ⚠ BOM อาจผิด (FrontShape M แต่ไม้ไม่เปลือย)" : "") /* 11:49 */ : ""].filter(Boolean).join(" · "); lotFinTxt(); }
   /* 2026-10-27 08:39 ผู้ใช้: “เคลือบพอสแกนมันจะขึ้นไหมครับ ว่า Lot นี้มีงานเคลือบกี่ชิ้น … ถ้างานไหนไม่มีสี / เคลือบก็ให้ขึ้นบอกไปเลย” → บรรทัดใต้ชื่อชิ้น */
   function lotFinCnt(lot){
     var d = IDX.data, o = {paint:0, coat:0}; if (!d || !d.lr) return null;
@@ -1100,13 +1100,16 @@
     var cs = null; if (FS.sfl && FS.sfl[K]) { cs = [sf ? sf[2] : "", sf ? sf[3] : ""]; [hit.b1, hit.cp, hit.bc].forEach(function(b){ b = norm(b); var x = b && FS.sf[K + "|" + b]; if (x) cs = [x[0] || cs[0], x[1] || cs[1]]; }); }
     if (cs) { if (/^N00S/i.test(cs[0]) || /^N00S/i.test(cs[1])) return "paint"; }
     else if (s34 && (FIN_NAME.test(hit.lot) || FIN_PAINT.test(fs))) return "paint";
-    if (FIN_COAT.test(fs)) return "coat";
+    if (FIN_COAT.test(fs)) { hit.bw = sf ? (/^x{8}/i.test(sf[2]) ? 0 : 1) + (/^x{8}/i.test(sf[3]) ? 0 : 1) === 2 : false; return "coat"; }   // 11:49 + ⚠ BOM อาจผิด (FrontShape M แต่ไม้ไม่เปลือยสักหน้า)
+    /* 2026-10-27 11:49 ผู้ใช้: “งานเคลือบต้องจับ Frontstyle หลัง : Frontshape เป็น M แล้วไม้มีเปลือย 1 หน้า คืองานเคลือบ … แบบบานขึ้นต้นด้วย M แต่ไม้ไม่ใช่เปลือย 1 หน้า หรือ 2 หน้า แจ้งเตือนว่า BOM อาจจะผิด”
+       (ตรงกับ StarStock lots 1.71) ไม่มี FrontShape M = ไม่ใช่เคลือบ — เว้น Lot ที่ไม่มี FrontStyle สักชิ้น = ดูรหัสไม้เปลือย 1 หน้าแบบ v24 · เดิม v26: ดูรหัสไม้ทุก Lot */
+    if (!FS.m) return FIN_MATCOAT.test(mat) ? "coat" : null;
+    if (!FS.lots[K] && FIN_MATCOAT.test(mat)) return "coat";
+    return "";
     /* 2026-10-27 09:04 ผู้ใช้ (FOREST-2026-0017 P11 Drawer Front MD19N01M0029NxxxxxxxxN): “ชิ้นนี้ มันงานเคลือบนะ”
        เดิม (v24): ไม้ผิวดิบ 1 ด้าน = เคลือบ เฉพาะ Lot ที่ไม่มี FrontStyle สักชิ้น — StarSync 1.23 ส่ง FrontStyle ของ Lot จบแล้วมา (Lot นี้มีแค่ Color:… บางชิ้น) → ชิ้นเคลือบหาย
        ตอนนี้: ไม่สนว่า Lot มี FrontStyle ไหม (ตรงกับ StarStock lots 1.55) · ไม่ต้องรอ fstyle.csv */
-    if (FIN_MATCOAT.test(mat)) return "coat";
-    if (!FS.m) return null;
-    return "";
+    /* v30 ปิด — เดิม v26: if (FIN_MATCOAT.test(mat)) return "coat"; if (!FS.m) return null; return ""; */
   }
   function lookup(t){
     if (!IDX.map) return null;

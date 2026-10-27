@@ -188,6 +188,13 @@
   #lot3d{width:100%;height:46px;margin:0 0 12px;border-radius:14px;background:var(--ok);color:#06210f;font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:6px}
   #lot3d.no3d{background:rgba(255,255,255,.14);color:var(--muted)}
   #lot3d[hidden]{display:none}
+  /* 2026-10-27 08:47 แถบ Data Matrix (ไม่เปิดเอง) + ปุ่มเก็บรูป */
+  #dmBar{position:fixed;left:12px;right:12px;bottom:calc(var(--safe-b) + 100px);z-index:4;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;
+    background:rgba(15,23,32,.92);border:1px solid rgba(255,255,255,.18);box-shadow:0 8px 24px rgba(0,0,0,.45);font-size:14px;line-height:1.35}
+  #dmBar[hidden]{display:none} #dmBar span{flex:1;min-width:0} #dmBar small{display:block;color:var(--muted);font-size:12.5px}
+  #dmBar button{flex:none;height:42px;padding:0 14px;border-radius:12px;background:var(--ok);color:#06210f;font-weight:800;font-size:15px}
+  #savePhotoBtn[hidden]{display:none}
+  #lotMsg .btn{height:42px;margin:6px 0 2px}
   #lotFin{margin:-8px 0 12px;font-size:14px;font-weight:700;color:#5eead4} #lotFin.none{color:var(--muted);font-weight:600}   /* 08:39 */
   .stepbtns .step[hidden]{display:none}   /* 2026-10-27 07:51 ปุ่มสี / เคลือบ เฉพาะชิ้นที่เป็นงานนั้น */
   #sheet.st:not(.lot):not(.pack) #copyBtn{display:inline-flex}   /* โค้ดที่ไม่ใช่ชิ้นงาน/ห่อ = คัดลอกได้เหมือนเดิม */
@@ -312,7 +319,11 @@
   <button class="btn" id="galleryBtn">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>รูปในเครื่อง
   </button>
+  <button class="btn" id="savePhotoBtn" hidden title="บันทึกรูปที่เพิ่งถ่ายลงเครื่อง">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>เก็บรูป
+  </button><!-- 2026-10-27 08:47 ผู้ใช้: “ปุ่มถ่ายรูป แล้วพอตอนติ๊กถูกให้มันเลือกเพิ่มว่า SAVE ลงเครื่องได้ไหม” -->
 </footer>
+<div id="dmBar" hidden><span>เห็น Data Matrix (ลิงก์ 3D)<small>จะลงสถานะ: เล็งบาร์โค้ดเส้นบนสติกเกอร์</small></span><button id="dmOpen">🧊 เปิด 3D</button></div><!-- 08:47 -->
 <input type="file" id="photoInput" accept="image/*" capture="environment" hidden>
 <input type="file" id="galleryInput" accept="image/*" hidden>
 
@@ -397,7 +408,7 @@
   /* 2026-10-27 08:26 ผู้ใช้: “เพิ่ม version ตัวแอพสแกนให้ทีจะได้รู้ว่าคนที่ใช้อยู่เวอร์ชั่นไหน”
      → รุ่นแอป = เลขเดียวกับ cache ของ sw.js (scanlink-vNN) — แก้แอปครั้งไหน บวกทั้งสองที่ (APP_VER + CACHE)
        · โชว์หลังชื่อแอปบนหัวจอ · จดลงทุกการบันทึก (steps.json: ยิงขั้น / ตรวจห่อ / hist ช่อง v) — StarStock ดูได้ว่าใครใช้รุ่นไหน */
-  var APP_VER = "v24";   // v24 = 2026-10-27 08:39 จำนวนชิ้นสี/เคลือบของ Lot · ชิ้นสี/เคลือบไม่มีปุ่ม Edge
+  var APP_VER = "v25";   // v25 = 2026-10-27 08:47 เก็บรูปที่ถ่ายลงเครื่อง · Data Matrix ไม่เปิดลิงก์เอง   // v24 = 2026-10-27 08:39 จำนวนชิ้นสี/เคลือบของ Lot · ชิ้นสี/เคลือบไม่มีปุ่ม Edge
   var FORMATS = ["DataMatrix","QRCode","Code128"];
   var LABEL = {DataMatrix:"Data Matrix",QRCode:"QR Code",Code128:"Code 128"};
   var LIVE_OPTS = {formats:FORMATS, tryHarder:true, tryRotate:true, tryInvert:false, tryDownscale:true, maxNumberOfSymbols:4};
@@ -613,9 +624,20 @@
     if (MODE === "st") {
       onlyLink = false;
       var codes = ok.filter(function(r){ return !toUrl(r.text); }), links = ok.filter(function(r){ return !!toUrl(r.text); });
-      for (var j0 = 0; j0 < codes.length; j0++) if (lookup(codes[j0].text) || packLookup(codes[j0].text)) { linkSeen = {u:"", at:0}; showText(codes[j0], live); return true; }   // ①
-      if (links.length) {   // ②
-        var u0 = toUrl(links[0].text), n0 = Date.now();
+      for (var j0 = 0; j0 < codes.length; j0++) if (lookup(codes[j0].text) || packLookup(codes[j0].text)) { linkSeen = {u:"", at:0}; dmHide(); showText(codes[j0], live); return true; }   // ① · 08:47 + ปิดแถบ Data Matrix
+      /* ───────── 2026-10-27 08:47 ผู้ใช้: “บางทีคนแสกนมันไปโดน Datamatrix แล้วมันเข้า link ไปเลย เราปรับให้มันขึ้นสถานะไปเลย มีปุ่ม 3D ให้กดดูอยู่แล้ว เขาจะได้เลือกเอา” ─────────
+         เดิม (07:38): ลิงก์ = เปิดเอง (สแกนสดรอ 0.35 วิ) · ตอนนี้ ลิงก์ใน Data Matrix (สติกเกอร์ชิ้นงาน) ไม่เปิดเอง:
+           สแกนสด = แถบล่าง “เห็น Data Matrix … [🧊 เปิด 3D]” แล้วอ่านต่อ — บาร์โค้ดเส้นเข้ากรอบเมื่อไหร่ = แผง Lot (สถานะ + 3D) ทันที
+           ถ่ายรูป / รูปในเครื่อง = แผงบอกลิงก์ + ปุ่ม 🧊 เปิด 3D (ในรูปมีบาร์โค้ดเส้นด้วย = แผง Lot ตามเดิม)
+         QR ที่เป็นลิงก์ (ไม่ใช่ Data Matrix) = เปิดเองเหมือนเดิม (แอปสแกนเข้าลิงก์) */
+      var dms = links.filter(function(r){ return r.format === "DataMatrix"; });
+      if (dms.length && dms.length === links.length) {
+        var ud = toUrl(dms[0].text);
+        if (live) { dmShow(ud); if (!codes.length) return false; }   // มีบาร์โค้ดอื่น (ไม่อยู่ในรายการ) = ไปทาง “ไม่พบใน Lot ผลิต” ด้านล่างตามเดิม
+        else { linkSeen = {u:"", at:0}; showText(dms[0], false); dmSheet(ud); return true; }
+      }
+      else if (links.length) {   // ② (08:47 ห่อด้วย else — เดิมเป็น if เดี่ยว)
+        var u0 = toUrl((links.filter(function(r){ return r.format !== "DataMatrix"; })[0] || links[0]).text), n0 = Date.now();   // 08:47 เปิดเฉพาะ QR (ไม่ใช่ Data Matrix)
         if (live) { if (linkSeen.u !== u0 || n0 - linkSeen.last > 600) { linkSeen = {u:u0, at:n0, last:n0}; return false; } linkSeen.last = n0; if (n0 - linkSeen.at < 350) return false; }
         linkSeen = {u:"", at:0}; go(u0); return true;
       }
@@ -644,6 +666,11 @@
      ตอนนี้: แตะปุ่ม 3D (แผง Lot / แผงห่อ) = เปิดหน้า 3D ซ้อนขึ้นมา (window.open) — Android แอปที่ติดตั้ง = แท็บซ้อนมีปุ่ม ✕ ปิดแล้วกลับมาหน้าสแกนเดิม
        (แผงห่อ ติ๊กที่ทำค้างอยู่ครบ) · iPhone = ปุ่ม “เสร็จสิ้น” · เบราว์เซอร์ปกติ = แท็บใหม่ (กด Back / ปิดแท็บ = กลับมา)
        เปิดหน้าใหม่ไม่ได้ (เบราว์เซอร์กันป๊อปอัป) = เปิดในหน้าเดิมแบบเดิม · ลิงก์จาก Data Matrix ที่กล้องอ่านเอง = หน้าเดิมเหมือนเดิม */
+  /* 08:47 แถบ Data Matrix (สแกนสด) · แผงลิงก์ (รูป) */
+  var DM_U = "", LINK_U = "";
+  function dmShow(u){ DM_U = u; $("dmBar").hidden = false; clearTimeout(dmShow.t); dmShow.t = setTimeout(dmHide, 3500); }
+  function dmHide(){ clearTimeout(dmShow.t); $("dmBar").hidden = true; }
+  function dmSheet(u){ LINK_U = u; $("sheetKind").textContent = "ลิงก์ 3D"; lotMsg("Data Matrix บนสติกเกอร์ = ลิงก์ดู 3D <button class='btn primary' id='openLink'>🧊 เปิด 3D</button><br><small>จะลงสถานะ: ถ่ายให้เห็นบาร์โค้ดเส้นบนสติกเกอร์ (PD…-P…) ด้วย</small>"); }
   function go3d(url){
     var w = null;
     try { w = window.open(url, "_blank"); } catch (e) { w = null; }
@@ -664,7 +691,7 @@
     var t = String(r.text).trim();
     if (t === shownText && !$("sheet").hidden) return;
     if (live && t === lastClosed.t && Date.now() - lastClosed.at < 2500) return;   // 2026-10-26: เพิ่งกด “สแกนต่อ” = กล้องสดไม่เด้งโค้ดเดิมกลับมาทันที (ถ่ายรูป = ตั้งใจ ไม่กัน)
-    shownText = t; flash();
+    shownText = t; flash(); dmHide();   // 08:47 แผงผลขึ้น = ปิดแถบ Data Matrix
     $("sheetFmt").textContent = LABEL[r.format] || r.format || "โค้ด";
     $("sheetText").textContent = t;
     $("copyBtn").textContent = "คัดลอก";
@@ -710,8 +737,23 @@
   function pickGallery(){ $("galleryInput").value = ""; $("galleryInput").click(); }
   $("photoBtn").onclick = pickPhoto; $("errPhotoBtn").onclick = pickPhoto;
   $("galleryBtn").onclick = pickGallery; $("errGalleryBtn").onclick = pickGallery;
-  $("photoInput").onchange = function(){ scanFile(this.files && this.files[0], false); };
-  $("galleryInput").onchange = function(){ scanFile(this.files && this.files[0], true); };
+  $("photoInput").onchange = function(){ var f0 = this.files && this.files[0]; photoKeep(f0); scanFile(f0, false); };   // 08:47 + เก็บรูปได้
+  /* ───────── 2026-10-27 08:47 ผู้ใช้: “ปรับให้ปุ่มถ่ายรูป แล้วพอตอนติ๊กถูกให้มันเลือกเพิ่มว่า SAVE ลงเครื่องได้ไหม” ─────────
+     กล้องผ่านเว็บเก็บรูปลงแกลเลอรีเองไม่ได้ → หลังถ่าย (กด ✓) มีปุ่ม 💾 เก็บรูป ที่แถบล่าง (5 นาที / จนถ่ายรูปใหม่)
+       iPhone = หน้าแชร์ → “บันทึกภาพ” · Android / คอม = ดาวน์โหลดลงเครื่อง (โฟลเดอร์ Download — แกลเลอรีเห็นในอัลบั้ม Download) */
+  var PHOTO = null;
+  function photoKeep(f){ PHOTO = f ? {f:f, at:new Date()} : null; $("savePhotoBtn").hidden = !PHOTO; clearTimeout(photoKeep.t); if (PHOTO) photoKeep.t = setTimeout(function(){ PHOTO = null; $("savePhotoBtn").hidden = true; }, 300000); }
+  function photoName(){ var d = PHOTO.at, t = shownText && codeLike(shownText) ? "_" + String(shownText).replace(/[^0-9A-Za-z_-]/g, "") : ""; return "scan_" + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + "_" + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds()) + t + "." + ((/png|webp|heic|heif/.exec(PHOTO.f.type || "") || ["jpg"])[0]); }
+  $("savePhotoBtn").onclick = function(){
+    if (!PHOTO) return;
+    var nm = photoName(), file = new File([PHOTO.f], nm, {type: PHOTO.f.type || "image/jpeg"});
+    if (IS_IOS && navigator.canShare && navigator.canShare({files:[file]})) { navigator.share({files:[file], title:nm}).catch(function(){}); return; }
+    var u = URL.createObjectURL(file), a = document.createElement("a"); a.href = u; a.download = nm; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(u); }, 30000); toast("💾 เก็บรูปลงเครื่องแล้ว (" + nm + ")");
+  };
+  $("dmOpen").onclick = function(){ var u = DM_U; dmHide(); if (u) go3d(u); };
+  $("lotMsg").addEventListener("click", function(e){ if (e.target && e.target.id === "openLink" && LINK_U) go3d(LINK_U); });
+  $("galleryInput").onchange = function(){ photoKeep(null); scanFile(this.files && this.files[0], true); };   // 08:47 รูปในเครื่อง = มีในเครื่องอยู่แล้ว → ซ่อนปุ่มเก็บรูป
 
   // อ่านหลายขนาด: รูปจากคลังมักใหญ่ (12MP+) โค้ดเล็กในรูปใหญ่ต้องอ่านที่ความละเอียดสูงขึ้น
   // เจอแค่ Barcode (ไม่ใช่ลิงก์) ยังอ่านต่อที่ขนาดใหญ่ขึ้น เผื่อ Data Matrix ที่เป็นลิงก์อยู่ในรูปเดียวกัน
@@ -723,7 +765,8 @@
       if (side <= last) break;                      // รูปเล็กกว่าขนาดนี้แล้ว ไม่ต้องอ่านซ้ำ
       last = side;
       var res = (await ZXingWASM.readBarcodes(img, PHOTO_OPTS_ST) || []).filter(function(r){ return r.isValid && r.text; });   // 07:38 โหมดเดียว
-      if (res.some(function(r){ return toUrl(r.text); })) return res;
+      /* 08:47: เดิมเจอลิงก์ = หยุดอ่าน (จะเปิดลิงก์อยู่แล้ว) · ตอนนี้ Data Matrix ไม่เปิดเอง → เจอแค่ Data Matrix ยังอ่านต่อที่ขนาดใหญ่ขึ้น หาบาร์โค้ดเส้นของชิ้นงานในรูปเดียวกัน */
+      if (res.some(function(r){ return (toUrl(r.text) && r.format !== "DataMatrix") || (!toUrl(r.text) && (lookup(r.text) || packLookup(r.text))); })) return res;
       if (res.length > best.length) best = res;
     }
     return best;
@@ -751,6 +794,7 @@
       alert("เปิดรูปนี้ไม่ได้ ลองเลือกรูปอื่น");
     }
     hide("reading");
+    if (PHOTO && !fromGallery) toast(found ? "อ่านรูปแล้ว — กด 💾 เก็บรูป ที่แถบล่าง ถ้าจะบันทึกรูปลงเครื่อง" : "กด 💾 เก็บรูป ที่แถบล่าง ถ้าจะบันทึกรูปลงเครื่อง");   // 08:47
     if (going) return;
     if (errShown || tapShown) {           // ยังไม่ได้เปิดกล้องสด → ไม่เปิดเอง
       if (found) setStatus("อ่านจากรูป", "ok"); else show(errShown ? "err" : "tap");
@@ -1243,7 +1287,7 @@
   var MODE_KEY = "scanlink_mode";
   var MODE = "st";   // 2026-10-27 07:38 โหมดเดียว (แอปดูเองจากโค้ดที่ยิง) — เดิม: lsGet(MODE_KEY) === "st" ? "st" : "3d" · แถบเลือกโหมดซ่อน (#modeBar)
   var onlyLink = false, seen = {t:"", at:0}, linkSeen = {u:"", at:0, last:0};   // 07:38 linkSeen = ลิงก์ที่เห็นต่อเนื่อง (สแกนสด)
-  var HINT_ONE = "เล็งบาร์โค้ด / QR ให้อยู่ในกรอบ — สติกเกอร์ชิ้นงาน = Lot · สถานะ · 3D · ใบปะห่อ = รายการชิ้น · ตรวจรับ Site · Data Matrix = เปิด 3D";   // 07:38
+  var HINT_ONE = "เล็งบาร์โค้ด / QR ให้อยู่ในกรอบ — สติกเกอร์ชิ้นงาน = Lot · สถานะ · 3D · ใบปะห่อ = รายการชิ้น · ตรวจรับ Site · Data Matrix = ปุ่ม 🧊 เปิด 3D (ไม่เปิดเอง)";   // 07:38 · 08:47 Data Matrix ไม่เปิดเอง
   var HINT = {"3d":"เล็ง Data Matrix / QR ให้อยู่ในกรอบ — เปิดลิงก์ (ดู 3D) · ยิงบาร์โค้ด Pack = ดูชิ้นใน Pack", st:"เล็งบาร์โค้ด Code Part บนสติกเกอร์ชิ้นงาน แล้วกด Edge / สี / เคลือบ / Drill · Site = ยิงบาร์โค้ดใบปะห่อ (Pack) แล้วติ๊กชิ้นที่ได้รับ"};   // 18:23 Site ราย Pack   // 17:02 + Pack
   function setMode(m, first){
     MODE = "st";   // 07:38 โหมดเดียว (เดิม: m === "st" ? "st" : "3d" · lsSet(MODE_KEY, MODE))

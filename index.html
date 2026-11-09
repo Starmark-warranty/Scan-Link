@@ -85,6 +85,30 @@
   [hidden]{display:none!important}
 
   /* แผงผล (โค้ดที่ไม่ใช่ลิงก์) */
+  /* v33 (2026-11-09) โหมดยิงรับของเข้า Contractor Nexus — เปิดจากปุ่ม Scan-Link ใน CN (?cn=…) เท่านั้น */
+  #cnBar{position:absolute;left:12px;right:12px;bottom:calc(var(--safe-b) + 96px);padding:12px 14px 14px;border-radius:18px;
+    background:var(--card);border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.45)}
+  #cnBar[hidden]{display:none}
+  #cnBar .cnh{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+  #cnBar .cnh b{font-size:16px} #cnJob{font-size:13px;color:var(--muted);white-space:nowrap}
+  #cnHint{font-size:13px;color:var(--muted);margin:4px 0 8px;line-height:1.45}
+  #cnList{display:flex;flex-wrap:wrap;gap:6px;max-height:28vh;overflow:auto;margin-bottom:10px}
+  #cnList:empty{display:none}
+  #cnList span{display:inline-flex;align-items:center;gap:6px;padding:4px 5px 4px 10px;border-radius:10px;background:rgba(34,197,94,.14);
+    border:1px solid rgba(34,197,94,.45);font:600 13.5px/1.2 ui-monospace,Menlo,Consolas,monospace}
+  #cnList span.new{background:rgba(34,197,94,.36)}
+  #cnList button{width:26px;height:26px;border-radius:8px;background:rgba(255,255,255,.14);font-size:13px;line-height:1}
+  #cnBar .row{display:flex;gap:10px} #cnBar .row .btn{flex:1;justify-content:center;height:48px}
+  #cnBar #cnBack{flex:0 0 auto;padding:0 16px}
+  #cnBar .btn.primary[disabled]{opacity:.45}
+  body.cn #sheet,body.cn #dmBar{display:none!important}
+  /* แถบ CN อยู่เหนือหน้า “แตะเพื่อเปิดกล้อง” / “เปิดกล้องไม่ได้” / “กำลังอ่านรูป” (กด ส่ง / กลับ CN ได้เสมอ แม้ไม่ได้เปิดกล้อง) · หน้าติดตั้ง / แชร์ อยู่เหนือแถบ */
+  body.cn #cnBar{z-index:6}
+  body.cn #tap,body.cn #err,body.cn #reading{padding-bottom:calc(var(--safe-b) + 240px)!important}
+  body.cn #tapInstall,body.cn #tap .mock{display:none!important}
+  body.cn #guide,body.cn #share{z-index:7}
+  body.cn #cnList{max-height:20vh}
+  body.cn #hint{display:none}   /* คำแนะนำของโหมด CN อยู่ในแถบแล้ว */
   #sheet{position:absolute;left:12px;right:12px;bottom:calc(var(--safe-b) + 86px);
     background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px 16px 16px;
     box-shadow:0 10px 30px rgba(0,0,0,.45)}
@@ -306,6 +330,14 @@
   </div>
 </div>
 
+<!-- v33 (2026-11-09): โหมดยิงรับของเข้า Contractor Nexus — ยิงหลายห่อ แล้ว “ส่งเข้า CN” (แอปนี้ไม่บันทึกเอง · CN บันทึกด้วยชื่อคนที่ล็อกอิน CN) -->
+<div id="cnBar" hidden>
+  <div class="cnh"><b>ยิงรับของเข้า Contractor Nexus</b><span id="cnJob"></span></div>
+  <div id="cnHint">เล็งบาร์โค้ด / QR บนใบปะห่อ (Code Pack) ทีละห่อ — ยิงได้หลายห่อ แล้วกด “ส่งเข้า CN”</div>
+  <div id="cnList"></div>
+  <div class="row"><button class="btn" id="cnBack">กลับ CN</button><button class="btn primary" id="cnSend" disabled>ส่งเข้า CN</button></div>
+</div>
+
 <footer>
   <button class="btn" id="torchBtn" hidden aria-label="ไฟฉาย">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6l-1 6h4l-8 14 1-9H7z"/></svg>ไฟฉาย
@@ -408,7 +440,8 @@
   /* 2026-10-27 08:26 ผู้ใช้: “เพิ่ม version ตัวแอพสแกนให้ทีจะได้รู้ว่าคนที่ใช้อยู่เวอร์ชั่นไหน”
      → รุ่นแอป = เลขเดียวกับ cache ของ sw.js (scanlink-vNN) — แก้แอปครั้งไหน บวกทั้งสองที่ (APP_VER + CACHE)
        · โชว์หลังชื่อแอปบนหัวจอ · จดลงทุกการบันทึก (steps.json: ยิงขั้น / ตรวจห่อ / hist ช่อง v) — StarStock ดูได้ว่าใครใช้รุ่นไหน */
-  var APP_VER = "v32";   // v32 = 2026-10-27 13:33 เคลือบ = FrontShape M + ผิวฟิล์ม G/N 03–05 P (Cut Rite) ที่ไม่ตรงรหัสไม้ · ไม้เมลามีนแบบบาน M = ไม่ใช่เคลือบ   // v31 = 2026-10-27 11:59 FrontStyle จับคู่ชิ้นด้วย Code Part (Lot ที่ไม่มี Barcode 1 เช่น FOREST-2026-0017)   // v30 = 2026-10-27 11:49 เคลือบ = FrontShape M (+ ไม้เปลือย) · ⚠ BOM อาจผิด   // v29 = 2026-10-27 10:40 งานสีดูผิวบน/ล่างจาก Cut Rite (fstyle.csv ช่อง st sb · StarSync v1.24)   // v28 = 2026-10-27 10:10 งานสีดูผิวบน/ล่าง 34N (ไม่ใช่ FrontStyle N00S อย่างเดียว)   // v27 = 2026-10-27 09:12 ปุ่ม Drill ก่อน สี / เคลือบ (เจาะก่อนทำสี·เคลือบ)   // v26 = 2026-10-27 09:04 ชิ้นเคลือบดูจากรหัสไม้ทุก Lot (เดิมเฉพาะ Lot ที่ไม่มี FrontStyle)   // v25 = 2026-10-27 08:47 เก็บรูปที่ถ่ายลงเครื่อง · Data Matrix ไม่เปิดลิงก์เอง   // v24 = 2026-10-27 08:39 จำนวนชิ้นสี/เคลือบของ Lot · ชิ้นสี/เคลือบไม่มีปุ่ม Edge
+  var APP_VER = "v33";   // v33 = 2026-11-09 โหมดยิงรับของเข้า Contractor Nexus (เปิดจากปุ่ม Scan-Link ใน CN · ?cn=…) — เปิดปกติทำงานเหมือน v32 ทุกอย่าง
+  /* v32: */   // v32 = 2026-10-27 13:33 เคลือบ = FrontShape M + ผิวฟิล์ม G/N 03–05 P (Cut Rite) ที่ไม่ตรงรหัสไม้ · ไม้เมลามีนแบบบาน M = ไม่ใช่เคลือบ   // v31 = 2026-10-27 11:59 FrontStyle จับคู่ชิ้นด้วย Code Part (Lot ที่ไม่มี Barcode 1 เช่น FOREST-2026-0017)   // v30 = 2026-10-27 11:49 เคลือบ = FrontShape M (+ ไม้เปลือย) · ⚠ BOM อาจผิด   // v29 = 2026-10-27 10:40 งานสีดูผิวบน/ล่างจาก Cut Rite (fstyle.csv ช่อง st sb · StarSync v1.24)   // v28 = 2026-10-27 10:10 งานสีดูผิวบน/ล่าง 34N (ไม่ใช่ FrontStyle N00S อย่างเดียว)   // v27 = 2026-10-27 09:12 ปุ่ม Drill ก่อน สี / เคลือบ (เจาะก่อนทำสี·เคลือบ)   // v26 = 2026-10-27 09:04 ชิ้นเคลือบดูจากรหัสไม้ทุก Lot (เดิมเฉพาะ Lot ที่ไม่มี FrontStyle)   // v25 = 2026-10-27 08:47 เก็บรูปที่ถ่ายลงเครื่อง · Data Matrix ไม่เปิดลิงก์เอง   // v24 = 2026-10-27 08:39 จำนวนชิ้นสี/เคลือบของ Lot · ชิ้นสี/เคลือบไม่มีปุ่ม Edge
   var FORMATS = ["DataMatrix","QRCode","Code128"];
   var LABEL = {DataMatrix:"Data Matrix",QRCode:"QR Code",Code128:"Code 128"};
   var LIVE_OPTS = {formats:FORMATS, tryHarder:true, tryRotate:true, tryInvert:false, tryDownscale:true, maxNumberOfSymbols:4};
@@ -612,6 +645,7 @@
   function handle(res, live){
     var ok = (res || []).filter(function(r){ return r.isValid && r.text; });
     if (!ok.length) return false;
+    if (CN) return cnHandle(ok, live);   // v33: โหมด Contractor Nexus = เก็บ Code Pack เข้ารายการ (ไม่เปิดลิงก์ / แผง Lot / แผงห่อ)
     /* 2026-10-26 (ผู้ใช้ 08:58 เลือก “3D / สถานะ”): เดิม (รุ่นเช้า) แอปเดาเอง = บาร์โค้ดชิ้นงานชนะลิงก์ → คนจะดู 3D ได้แผง Edge/Drill แทน
        ตอนนี้ แยกตามโหมดที่เลือก · โหมดสถานะ: ไม่เปิดลิงก์เลย ใช้แต่โค้ดที่ไม่ใช่ลิงก์ · โหมด 3D: แบบเดิมก่อนมี Edge/Drill */
     /* ───────── 2026-10-27 07:38 ผู้ใช้ (รูปสติกเกอร์ชิ้นงาน PD69000045189-P50 + ใบปะห่อ PD69000045189-PD06_2): “ปุ่ม 3D กับสถานะ ถ้าไม่มี แต่ให้มันรู้เองได้ปะ
@@ -660,6 +694,82 @@
   }
 
   function flash(){ box.classList.add("hit"); setTimeout(function(){ box.classList.remove("hit"); }, 500); }
+
+  /* ───────── v33 (2026-11-09) ผู้ใช้: “ใส่ลิงก์ Scan-Link ไว้ตรงแถบสแกนของทั้งผู้รับเหมาและช่างติดตั้ง ให้แอปนี้สแกนแล้วกดบันทึกเข้าระบบเรา (Contractor Nexus) ได้”
+     โหมด CN = เปิดจากปุ่ม “Scan-Link” ใน CN: ?cn=<หน้า CN ที่จะกลับ>&cnt=<รหัสรอบจาก CN>&cnj=<เลข Order (โชว์อย่างเดียว)>
+       ยิง Code Pack ได้หลายห่อ (สะสมเป็นรายการ · ✕ เอาออก · จำไว้ถ้าหน้าโหลดใหม่) → “ส่งเข้า CN” = กลับหน้าเดิมของ CN พร้อม ?cnscan=A,B&cnt=…
+       → CN บันทึกรับของเองด้วยชื่อคนที่ล็อกอิน CN (สิทธิ์ตามบัญชี CN) · แอปนี้ไม่บันทึกอะไร (ไม่แตะ Google Drive / steps.json)
+       กลับได้เฉพาะ Contractor Nexus (https://starmarkenuser2.github.io · localhost ไว้ทดสอบ) — ลิงก์ที่ชี้ไปเว็บอื่น = เปิดแอปแบบปกติ
+       สติกเกอร์ชิ้นงาน (Code Part ที่อยู่ใน Lot ผลิต) / ลิงก์ = ไม่เพิ่ม · เปิดแอปปกติ (ไม่มี ?cn=) = เหมือน v32 ทุกอย่าง ───────── */
+  var CN = (function(){
+    try {
+      var q = new URLSearchParams(location.search), r = q.get("cn");
+      if (!r) return null;
+      var u = new URL(r);
+      if (!((u.protocol === "https:" && u.hostname === "starmarkenuser2.github.io") || (u.protocol === "http:" && /^(localhost|127\.0\.0\.1)$/.test(u.hostname)))) return null;
+      return {ret:u.toString(), tok:String(q.get("cnt") || "").replace(/[^A-Za-z0-9]/g, "").slice(0, 64),
+        job:String(q.get("cnj") || "").replace(/[^A-Za-z0-9._\/-]/g, "").slice(0, 40), list:[], seen:{t:"", at:0}, warnAt:0};
+    } catch (e) { return null; }
+  })();
+  var CN_RE = /^[A-Z0-9][A-Z0-9._\/-]{2,59}$/, CN_SS = "scanlink_cn", CN_MAX = 300;
+  function cnNorm(t){ return String(t || "").replace(/\s+/g, "").toUpperCase(); }
+  function cnSave(){ try { sessionStorage.setItem(CN_SS, JSON.stringify({tok:CN.tok, ret:CN.ret, list:CN.list})); } catch (e) {} }
+  function cnLoad(){
+    try { var o = JSON.parse(sessionStorage.getItem(CN_SS) || "null");
+      if (o && o.tok === CN.tok && o.ret === CN.ret && Array.isArray(o.list)) CN.list = o.list.filter(function(t){ return CN_RE.test(t); }).slice(0, CN_MAX); } catch (e) {}
+  }
+  function cnPaint(last){
+    var n = CN.list.length;
+    $("cnList").innerHTML = CN.list.slice().reverse().map(function(t){ return "<span" + (t === last ? " class='new'" : "") + ">" + esc(t) + "<button data-c='" + esc(t) + "' aria-label='เอาออก'>✕</button></span>"; }).join("");
+    $("cnSend").disabled = !n; $("cnSend").textContent = n ? "ส่งเข้า CN (" + n + " ห่อ)" : "ส่งเข้า CN";
+  }
+  function cnHandle(ok, live){
+    var codes = [], why = "";
+    ok.forEach(function(r){
+      var t = cnNorm(r.text);
+      if (toUrl(r.text) || !CN_RE.test(t)) { why = why || "ไม่ใช่ Code Pack"; return; }
+      if (IDX.map && lookup(t) && !packLookup(t)) { why = why || "นี่คือสติกเกอร์ชิ้นงาน — ยิงใบปะห่อ (Code Pack)"; return; }
+      if (codes.indexOf(t) < 0) codes.push(t);
+    });
+    if (!codes.length) {
+      if (!live) { toast((why || "ไม่พบ Code Pack ในรูป") + " — ไม่ได้เพิ่ม"); return true; }
+      if (why && Date.now() - CN.warnAt > 3000) { CN.warnAt = Date.now(); toast(why + " — ไม่ได้เพิ่ม"); }
+      return false;
+    }
+    var fresh = codes.filter(function(t){ return CN.list.indexOf(t) < 0; });
+    if (!fresh.length) { if (!live) toast("ห่อนี้อยู่ในรายการแล้ว"); return !live; }   // กล้องสดเห็นห่อเดิมทุกเฟรม = เงียบ
+    if (live) {   // สแกนสด: ต้องอ่านได้รหัสเดิม 2 ครั้งติดกัน (กันอ่านเพี้ยน)
+      var now = Date.now(), t0 = fresh[0];
+      if (CN.seen.t !== t0 || now - CN.seen.at > 1500) { CN.seen = {t:t0, at:now}; return false; }
+      CN.seen = {t:"", at:0}; fresh = [t0];
+    }
+    if (CN.list.length + fresh.length > CN_MAX) { toast("ส่งได้ครั้งละไม่เกิน " + CN_MAX + " ห่อ — กด “ส่งเข้า CN” ก่อน"); return true; }
+    fresh.forEach(function(t){ CN.list.push(t); });
+    cnSave(); cnPaint(fresh[fresh.length - 1]); flash();
+    try { if (navigator.vibrate) navigator.vibrate(60); } catch (e) {}
+    setStatus("ยิงแล้ว " + CN.list.length + " ห่อ", "ok");
+    toast(fresh.length > 1 ? "เพิ่ม " + fresh.length + " ห่อ (รวม " + CN.list.length + ")" : "เพิ่ม " + fresh[0] + " (รวม " + CN.list.length + " ห่อ)");
+    return true;
+  }
+  function cnGo(send){
+    if (going) return;
+    var u = new URL(CN.ret);
+    if (send && CN.list.length) u.searchParams.set("cnscan", CN.list.join(","));
+    if (CN.tok) u.searchParams.set("cnt", CN.tok);
+    try { sessionStorage.removeItem(CN_SS); } catch (e) {}
+    going = true; stopCamera(); hide("cnBar");
+    $("goUrl").textContent = send ? "ส่ง " + CN.list.length + " ห่อเข้า Contractor Nexus" : "กลับ Contractor Nexus"; show("going");
+    setTimeout(function(){ location.href = u.toString(); }, 120);
+  }
+  function cnInit(){
+    if (!CN) return;
+    document.body.classList.add("cn"); cnLoad();
+    $("cnJob").textContent = CN.job ? "งาน " + CN.job : "";
+    $("cnList").onclick = function(e){ var b = e.target.closest && e.target.closest("button[data-c]"); if (!b) return; var i = CN.list.indexOf(b.getAttribute("data-c")); if (i >= 0) { CN.list.splice(i, 1); cnSave(); cnPaint(); } };
+    $("cnSend").onclick = function(){ if (CN.list.length) cnGo(true); };
+    $("cnBack").onclick = function(){ if (!CN.list.length || confirm("ยังไม่ได้ส่ง " + CN.list.length + " ห่อ — กลับ CN โดยไม่ส่ง?")) cnGo(false); };
+    show("cnBar"); cnPaint();
+  }
 
   /* 2026-10-27 08:20 ผู้ใช้: “เมื่อกดดู 3D แล้วให้ย้อนกลับมาที่หน้าสแกน link ได้หรือไม่”
      เดิม (26/10 17:02): แตะ 3D = เปิดในหน้าเดิม (location.href) — แอปที่ติดตั้งไว้ไม่มีปุ่มย้อนกลับ ต้องปัด/กด Back ของเครื่อง
@@ -1790,9 +1900,10 @@
     else if (PK && !$("sheet").hidden) setStatus("แตะเพื่อเริ่ม", "warn");   // 2026-10-26 17:02: แผง Pack ที่กลับมาจากหน้า 3D เปิดอยู่ = ไม่เอาหน้าเปิดกล้องมาบัง (กด “สแกนต่อ” แล้วค่อยขึ้น)
     else { show("tap"); setStatus("แตะเพื่อเริ่ม", "warn"); }
   }
+  cnInit();   // v33: โหมด Contractor Nexus (ก่อน boot — แถบรายการขึ้นทันที)
   boot();
   setMode(MODE, true);      // 2026-10-26: โหมดที่จำไว้ · โหมดสถานะ = โหลดรายการบาร์โค้ดของ Lot ผลิต (ใช้ของที่จำไว้ในเครื่องทันที)
-  if (packSaved() && DRV) { if (IDX.map) packRestore(); else idxLoad(false); }   // 2026-10-26 17:02: เปิดแอปใหม่หลังไปดู 3D (หน้าโหลดใหม่ ไม่ใช่ bfcache) = แผง Pack เดิม
+  if (!CN && packSaved() && DRV) { if (IDX.map) packRestore(); else idxLoad(false); }   // 2026-10-26 17:02: เปิดแอปใหม่หลังไปดู 3D (หน้าโหลดใหม่ ไม่ใช่ bfcache) = แผง Pack เดิม
 })();
 </script>
 </body>
